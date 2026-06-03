@@ -670,7 +670,10 @@ function setupMapEditor() {
     mapCanvas.addEventListener('mousedown', startDrawingMap);
     mapCanvas.addEventListener('mousemove', drawMapTile);
     mapCanvas.addEventListener('mousemove', updateMapHover);
-    mapCanvas.addEventListener('mouseleave', () => { const h = document.getElementById('map-hover-info'); if (h) h.textContent = ''; });
+    mapCanvas.addEventListener('mouseleave', () => {
+        const h = document.getElementById('map-hover-info'); if (h) h.textContent = '';
+        _lastHoverCell = null; drawMapToEditor(); // quita el resaltado
+    });
     mapCanvas.addEventListener('contextmenu', (e) => { e.preventDefault(); pickMapTile(e); }); // clic-derecho = cuentagotas
     window.addEventListener('mouseup', stopDrawingMap);
 
@@ -933,15 +936,39 @@ function pickMapTile(e) {
     updateSelectedTileInfo();
 }
 
-// Lectura de la celda bajo el cursor (coordenadas + tile).
+// Lectura de la celda bajo el cursor (coordenadas + tile) + resaltado en el lienzo.
+let _lastHoverCell = null;
 function updateMapHover(e) {
     const info = document.getElementById('map-hover-info');
     if (!info || !AppState.gameData) return;
     const { col, row } = mapCellAt(e);
-    if (col === null) { info.textContent = ''; return; }
-    const id = AppState.gameData.tilemap[row][col];
-    const m = tileMeta(id);
-    info.textContent = '(' + col + ',' + row + ') #' + id + (m.name ? ' ' + m.name : '');
+    const key = (col === null) ? null : (col + ',' + row);
+    if (col === null) info.textContent = '';
+    else {
+        const id = AppState.gameData.tilemap[row][col];
+        const m = tileMeta(id);
+        info.textContent = '(' + col + ',' + row + ') #' + id + (m.name ? ' ' + m.name : '');
+    }
+    // Redibuja (con resaltado) solo cuando cambia la celda, no en cada pixel de movimiento.
+    if (key !== _lastHoverCell) {
+        _lastHoverCell = key;
+        drawMapToEditor();
+        if (col !== null) drawMapHoverHighlight(col, row);
+    }
+}
+
+function drawMapHoverHighlight(col, row) {
+    if (!mapCtx) return;
+    const tileW = mapCanvas.width / window.GBPlatform.cols;
+    const tileH = mapCanvas.height / window.GBPlatform.rows;
+    mapCtx.save();
+    mapCtx.strokeStyle = 'rgba(155, 188, 15, 0.95)';
+    mapCtx.lineWidth = 2;
+    mapCtx.strokeRect(col * tileW + 1, row * tileH + 1, tileW - 2, tileH - 2);
+    mapCtx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+    mapCtx.lineWidth = 1;
+    mapCtx.strokeRect(col * tileW + 0.5, row * tileH + 0.5, tileW - 1, tileH - 1);
+    mapCtx.restore();
 }
 
 function drawMapTile(e) {
@@ -958,6 +985,7 @@ function drawMapTile(e) {
         floodFillMapGbc(col, row, targetTileId, AppState.selectedTileIdx, AppState.selectedMapPaletteIdx);
     }
     drawMapToEditor();
+    drawMapHoverHighlight(col, row); // mantener el resaltado de la celda activa
     syncAssetsToSimulator();
     updateCodeView();
 }
