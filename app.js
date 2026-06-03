@@ -18,7 +18,8 @@ const AppState = {
     // Configuración del editor de mapas
     selectedTileIdx: 16,  // Tile ID 16 (Suelo por defecto)
     selectedMapPaletteIdx: 0, // Paleta de fondo seleccionada (0-7) para pintar
-    mapTool: 'pencil',    // pencil / fill
+    mapTool: 'pencil',    // pencil / fill / eyedropper
+    editMap: 'town',      // mapa que se edita: 'town' | 'route1' | '<interior>'
     
     // Configuración del editor de paletas GBC
     selectedPaletteIdx: 0, // Paleta de fondo seleccionada para editar en la pestaña
@@ -691,18 +692,27 @@ function setupMapEditor() {
     };
     for (const k in tools) if (tools[k]) tools[k].addEventListener('click', () => setTool(k));
 
+    // Selector de mapa a editar (pueblo / Ruta 1 / interiores)
+    const mapSel = document.getElementById('map-edit-select');
+    if (mapSel) mapSel.addEventListener('change', () => {
+        AppState.editMap = mapSel.value || 'town';
+        _lastHoverCell = null;
+        drawMapToEditor();
+        updateCodeView();
+    });
+
     document.getElementById('btn-clear-map').addEventListener('click', () => {
-        const ROWS = window.GBPlatform.rows;
-        const COLS = window.GBPlatform.cols;
-        for (let r = 0; r < ROWS; r++) {
-            AppState.gameData.tilemap[r].fill(16);
-            AppState.gameData.tilemapAttrs[r].fill(0); // Restablecer a Paleta 0
+        const em = currentEditMap();
+        const { cols, rows } = editMapDims();
+        for (let r = 0; r < rows; r++) {
+            em.tilemap[r].fill(16);
+            em.attrs[r].fill(0);
         }
-        for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c < COLS; c++) {
-                if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) {
-                    AppState.gameData.tilemap[r][c] = 17; // Pared
-                    AppState.gameData.tilemapAttrs[r][c] = 1; // Paleta 1 (Paredes)
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (r === 0 || r === rows - 1 || c === 0 || c === cols - 1) {
+                    em.tilemap[r][c] = 17; // Pared
+                    em.attrs[r][c] = 1;
                 }
             }
         }
@@ -784,6 +794,21 @@ function tileMeta(i) {
     return meta[i] || meta[String(i)] || {};
 }
 
+// Puebla el selector de mapa a editar con los mapas disponibles (pueblo + áreas + interiores).
+function populateMapEditSelect() {
+    const sel = document.getElementById('map-edit-select');
+    if (!sel || !AppState.gameData) return;
+    const gd = AppState.gameData;
+    const dim = m => m.tilemap[0].length + '×' + m.tilemap.length;
+    const opts = [];
+    if (gd.tilemap) opts.push(['town', '🏘️ Pueblo (' + gd.tilemap[0].length + '×' + gd.tilemap.length + ')']);
+    for (const k in (gd.maps || {})) if (gd.maps[k] && gd.maps[k].tilemap) opts.push([k, '🌳 ' + k + ' (' + dim(gd.maps[k]) + ')']);
+    for (const k in (gd.interiors || {})) if (gd.interiors[k] && gd.interiors[k].tilemap) opts.push([k, '🏠 ' + k + ' (' + dim(gd.interiors[k]) + ')']);
+    sel.innerHTML = opts.map(([v, l]) => '<option value="' + v + '">' + l + '</option>').join('');
+    if (!opts.find(o => o[0] === AppState.editMap)) AppState.editMap = 'town';
+    sel.value = AppState.editMap;
+}
+
 function populateMapPaletteSelect() {
     const sel = document.getElementById('map-tile-palette');
     if (!sel || !AppState.gameData) return;
@@ -802,6 +827,7 @@ function updateTilePicker() {
     const picker = document.getElementById('tile-picker');
     picker.innerHTML = '';
     rebuildTilePalHint();
+    populateMapEditSelect();
     populateMapPaletteSelect();
 
     const bg = AppState.gameData.bgTiles;
@@ -863,10 +889,14 @@ function updateSelectedTileInfo() {
 function drawMapToEditor() {
     if (!AppState.gameData) return;
 
-    const ROWS = window.GBPlatform.rows;
-    const COLS = window.GBPlatform.cols;
-    const tilemap = AppState.gameData.tilemap;
-    const attrs = AppState.gameData.tilemapAttrs;
+    const em = currentEditMap();
+    const tilemap = em.tilemap;
+    const attrs = em.attrs;
+    const ROWS = tilemap.length;
+    const COLS = (tilemap[0] || []).length;
+    // Ajustar el lienzo a las dimensiones del mapa activo (16 px/tile). El CSS lo escala al ancho del panel.
+    const targetW = COLS * 16, targetH = ROWS * 16;
+    if (mapCanvas.width !== targetW || mapCanvas.height !== targetH) { mapCanvas.width = targetW; mapCanvas.height = targetH; }
     const tileW = mapCanvas.width / COLS;
     const tileH = mapCanvas.height / ROWS;
 
@@ -907,7 +937,7 @@ function drawMapToEditor() {
         }
     }
     const lbl = document.getElementById('map-size-label');
-    if (lbl) lbl.textContent = 'Mapa: ' + COLS + '×' + ROWS + ' tiles' + (window.GBPlatform.mode === 'gba' ? ' (GBA)' : ' (GBC)');
+    if (lbl) lbl.textContent = (AppState.editMap || 'town') + ': ' + COLS + '×' + ROWS + ' tiles';
 }
 
 function startDrawingMap(e) {
@@ -915,12 +945,29 @@ function startDrawingMap(e) {
     drawMapTile(e);
 }
 
+// Mapa actualmente en edición: { tilemap, attrs }. Pueblo, Ruta 1 o un interior, todos desde gameData
+// (referencias compartidas con el simulador: editar aquí ya propaga al juego).
+function currentEditMap() {
+    const gd = AppState.gameData;
+    const sel = AppState.editMap || 'town';
+    if (sel !== 'town') {
+        if (gd.maps && gd.maps[sel] && gd.maps[sel].tilemap) return { tilemap: gd.maps[sel].tilemap, attrs: gd.maps[sel].attrs };
+        if (gd.interiors && gd.interiors[sel] && gd.interiors[sel].tilemap) return { tilemap: gd.interiors[sel].tilemap, attrs: gd.interiors[sel].attrs };
+    }
+    return { tilemap: gd.tilemap, attrs: gd.tilemapAttrs };
+}
+function editMapDims() {
+    const m = currentEditMap();
+    return { cols: (m.tilemap[0] || []).length, rows: m.tilemap.length };
+}
+
 // Celda (col,row) del mapa bajo el evento de ratón, o {col:null} si está fuera.
 function mapCellAt(e) {
+    const { cols, rows } = editMapDims();
     const rect = mapCanvas.getBoundingClientRect();
-    const col = Math.floor((e.clientX - rect.left) / (rect.width / window.GBPlatform.cols));
-    const row = Math.floor((e.clientY - rect.top) / (rect.height / window.GBPlatform.rows));
-    if (col < 0 || col >= window.GBPlatform.cols || row < 0 || row >= window.GBPlatform.rows) return { col: null, row: null };
+    const col = Math.floor((e.clientX - rect.left) / (rect.width / cols));
+    const row = Math.floor((e.clientY - rect.top) / (rect.height / rows));
+    if (col < 0 || col >= cols || row < 0 || row >= rows) return { col: null, row: null };
     return { col, row };
 }
 
@@ -928,9 +975,9 @@ function mapCellAt(e) {
 function pickMapTile(e) {
     const { col, row } = mapCellAt(e);
     if (col === null) return;
-    const id = AppState.gameData.tilemap[row][col];
-    selectMapTile(id);
-    const pal = AppState.gameData.tilemapAttrs[row][col];
+    const em = currentEditMap();
+    selectMapTile(em.tilemap[row][col]);
+    const pal = em.attrs[row][col];
     const sel = document.getElementById('map-tile-palette'); if (sel) sel.value = pal;
     AppState.selectedMapPaletteIdx = pal;
     updateSelectedTileInfo();
@@ -945,7 +992,7 @@ function updateMapHover(e) {
     const key = (col === null) ? null : (col + ',' + row);
     if (col === null) info.textContent = '';
     else {
-        const id = AppState.gameData.tilemap[row][col];
+        const id = currentEditMap().tilemap[row][col];
         const m = tileMeta(id);
         info.textContent = '(' + col + ',' + row + ') #' + id + (m.name ? ' ' + m.name : '');
     }
@@ -959,8 +1006,9 @@ function updateMapHover(e) {
 
 function drawMapHoverHighlight(col, row) {
     if (!mapCtx) return;
-    const tileW = mapCanvas.width / window.GBPlatform.cols;
-    const tileH = mapCanvas.height / window.GBPlatform.rows;
+    const { cols, rows } = editMapDims();
+    const tileW = mapCanvas.width / cols;
+    const tileH = mapCanvas.height / rows;
     mapCtx.save();
     mapCtx.strokeStyle = 'rgba(155, 188, 15, 0.95)';
     mapCtx.lineWidth = 2;
@@ -976,13 +1024,13 @@ function drawMapTile(e) {
     if (AppState.mapTool === 'eyedropper') { pickMapTile(e); return; }
     const { col, row } = mapCellAt(e);
     if (col === null) return;
+    const em = currentEditMap();
 
     if (AppState.mapTool === 'pencil') {
-        AppState.gameData.tilemap[row][col] = AppState.selectedTileIdx;
-        AppState.gameData.tilemapAttrs[row][col] = AppState.selectedMapPaletteIdx;
+        em.tilemap[row][col] = AppState.selectedTileIdx;
+        em.attrs[row][col] = AppState.selectedMapPaletteIdx;
     } else if (AppState.mapTool === 'fill') {
-        const targetTileId = AppState.gameData.tilemap[row][col];
-        floodFillMapGbc(col, row, targetTileId, AppState.selectedTileIdx, AppState.selectedMapPaletteIdx);
+        floodFillMapGbc(col, row, em.tilemap[row][col], AppState.selectedTileIdx, AppState.selectedMapPaletteIdx);
     }
     drawMapToEditor();
     drawMapHoverHighlight(col, row); // mantener el resaltado de la celda activa
@@ -993,14 +1041,16 @@ function drawMapTile(e) {
 function floodFillMapGbc(startCol, startRow, targetId, replacementId, paletteId) {
     if (targetId === replacementId) return;
     
-    const map = AppState.gameData.tilemap;
-    const attrs = AppState.gameData.tilemapAttrs;
+    const em = currentEditMap();
+    const map = em.tilemap;
+    const attrs = em.attrs;
+    const { cols, rows } = editMapDims();
     const queue = [[startCol, startRow]];
-    
+
     while(queue.length > 0) {
         const [c, r] = queue.shift();
-        
-        if (r < 0 || r >= window.GBPlatform.rows || c < 0 || c >= window.GBPlatform.cols) continue;
+
+        if (r < 0 || r >= rows || c < 0 || c >= cols) continue;
         if (map[r][c] !== targetId) continue;
         
         map[r][c] = replacementId;

@@ -81,9 +81,10 @@ Estado del proyecto. Ver `CLAUDE.md` (arquitectura) y `.claude/skills/gba-pokemo
   cura con ANTÍDOTO / Centro). Faltan otros estados (sueño/parálisis), **PP** y habilidades.
 - **Export de ROM real**: solo GBC produce `.gb`; **GBA no genera binario** (requiere devkitARM).
 - Otros géneros (rpg/shooter/platformer) **solo en GBC**.
-- ✅ **Editor de mapas mejorado**: muestra **todos** los tiles con arte (no solo 16–25) con nombre/ID y
-  paleta real; tile seleccionado con info; **cuentagotas** (clic-derecho); lectura de coordenadas al pasar
-  el ratón; etiqueta de tamaño dinámica; y layout apilado que cabe en el panel.
+- ✅ **Editor de mapas mejorado**: **selector de mapa** para editar pueblo / **Ruta 1 (30×40)** / interiores
+  (lienzo se redimensiona por mapa; edición propaga al simulador por referencia compartida); muestra **todos**
+  los tiles con arte (no solo 16–25) con nombre/ID y paleta real; tile seleccionado con info; **cuentagotas**
+  (clic-derecho); **resaltado** + lectura de la celda bajo el cursor; etiqueta de tamaño dinámica; layout apilado.
 
 ### Verificación
 - Comprobado forzando frames (`GBSimulator.stop();start()`) porque el preview no ejecuta `requestAnimationFrame`.
