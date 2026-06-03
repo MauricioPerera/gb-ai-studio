@@ -263,6 +263,9 @@ function setupEditor() {
         });
     }
 
+    const btnSyncArt = document.getElementById('btn-md-sync-art');
+    if (btnSyncArt) btnSyncArt.addEventListener('click', syncArtToGameMd);
+
     const btnDownload = document.getElementById('btn-md-download');
     if (btnDownload) btnDownload.addEventListener('click', () => {
         if (editor) downloadBlob(editor.value, 'GAME.md', 'text/markdown');
@@ -270,6 +273,31 @@ function setupEditor() {
 
     // Al arrancar, precargar el GAME.md del repo en el editor (sin aplicar todavía).
     loadGameMdIntoEditor(false);
+}
+
+// Conecta los editores visuales con GAME.md: vuelca el arte de tiles editado (gameData.bgTiles,
+// que pinta el Map Editor) a la sección `tileArt:` del GAME.md del editor. Cierra el bucle
+// pintar → dato. (El sentido inverso GAME.md → bgTiles ya ocurre al pulsar «Aplicar».)
+function syncArtToGameMd() {
+    const editor = document.getElementById('gamemd-editor');
+    const bg = AppState.gameData && AppState.gameData.bgTiles;
+    if (!editor || !bg) { addSystemMessage('No hay arte que sincronizar (genera/aplica un juego primero).'); return; }
+    const isEmpty = m => !m || m.every(r => r.every(v => v === 0));
+    const lines = [];
+    bg.forEach((m, i) => { if (!isEmpty(m)) lines.push('  ' + (16 + i) + ': ' + JSON.stringify(m)); });
+    if (!lines.length) { addSystemMessage('No hay tiles con arte para volcar.'); return; }
+    const block = 'tileArt:\n' + lines.join('\n') + '\n';
+    editor.value = upsertFrontMatterSection(editor.value, 'tileArt', block);
+    addSystemMessage('⤴ Arte volcado a `tileArt` (' + lines.length + ' tiles). Pulsa «▶ Aplicar» o «💾 Descargar».');
+}
+
+// Reemplaza una sección de nivel raíz del front-matter por `block`; si no existe, la inserta antes del cierre.
+function upsertFrontMatterSection(text, key, block) {
+    const re = new RegExp('^' + key + ':\\n(?:[ \\t]+.*\\n?)*', 'm');
+    if (re.test(text)) return text.replace(re, block);
+    const m = text.match(/^(---\n[\s\S]*?\n)(---\n[\s\S]*)$/);
+    if (m) return m[1] + block + m[2];
+    return text.replace(/\s*$/, '\n') + block;
 }
 
 // Carga el GAME.md del repo en el editor; si apply=true, ademas lo aplica al juego.
@@ -974,6 +1002,7 @@ function updateCodeView() {
 function setupConfigModal() {
     const modal = document.getElementById('modal-api');
     const btnConfig = document.getElementById('btn-config');
+    if (!modal || !btnConfig) return; // panel de chat IA retirado: configuración de API en desuso
     const btnClose = document.getElementById('modal-close');
     const btnCancel = document.getElementById('modal-cancel');
     const btnSave = document.getElementById('modal-save');
