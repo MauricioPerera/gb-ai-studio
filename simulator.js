@@ -1732,12 +1732,25 @@ const GBSimulator = (function() {
         } catch(e) {}
     }
 
+    // Reconstruye el estado inicial del jugador desde window.GAME.PLAYER (usado al importar un GAME.md).
+    function reinitPlayer() {
+        gameState.playerMon = buildStarter();
+        gameState.inventory = startInventory();
+        gameState.party = [];
+        gameState.pokedex = { seen: { [starterName()]: true }, caught: { [starterName()]: true } };
+        gameState.playerX = startPos().x;
+        gameState.playerY = startPos().y;
+        gameState.money = (window.GAME && window.GAME.ECONOMY && window.GAME.ECONOMY.startMoney != null)
+            ? window.GAME.ECONOMY.startMoney : gameState.money;
+    }
+
     return {
         init: init,
         setAssets: setAssets,
         start: start,
         stop: stop,
         resetGame: resetGame,
+        reinitPlayer: reinitPlayer,
         applyPlatform: applyPlatform,
         gameState: gameState,
         playBeep: playBeep,

@@ -28,6 +28,10 @@
                 <button id="btn-config" class="btn btn-secondary">
                     <span class="btn-icon">⚙️</span> Configurar API
                 </button>
+                <button id="btn-import-gamemd" class="btn btn-secondary" title="Importar un GAME.md y ver el juego al instante">
+                    <span class="btn-icon">📥</span> Importar GAME.md
+                </button>
+                <input type="file" id="gamemd-file" accept=".md,.txt,text/markdown" style="display:none">
                 <button id="btn-export-asm" class="btn btn-secondary">
                     <span class="btn-icon">📄</span> Exportar ASM
                 </button>
@@ -409,6 +413,8 @@ NR14: 0x86  ; Frequency High / Trigger
     <!-- Scripts -->
     <!-- Datos de gameplay generados desde GAME.md (window.GAME). Debe cargar primero. -->
     <script src="game-data.generated.js"></script>
+    <script src="tools/yaml-min.js"></script>
+    <script src="tools/game-build.js"></script>
     <script src="rombuilder.js"></script>
     <script src="generator.js"></script>
     <script src="simulator.js"></script>

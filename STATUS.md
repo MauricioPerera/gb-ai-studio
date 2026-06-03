@@ -25,6 +25,9 @@ Estado del proyecto. Ver `CLAUDE.md` (arquitectura) y `.claude/skills/gba-pokemo
 - `GAME.md` (tokens fuente de verdad) · `tools/game-lint.js` + `yaml-min.js` (validador) ·
   `tools/game-export.js` → `game-data.generated.js` (`window.GAME`) · `.github/workflows/game.yml` (CI lint + sin-drift).
 - El motor **consume `window.GAME`** (TYPE_CHART, WILD_LIST, EVOLUTIONS, economía, balance) con fallback.
+- ✅ **Importar `GAME.md` en el navegador** (botón «📥 Importar GAME.md»): parsea + `buildGame` (transformación
+  compartida `tools/game-build.js`, isomorfa CLI/navegador) → `window.GAME` → regenera + `reinitPlayer`.
+  Verificado: importar un `GAME.md` con `starter: GOTIN` hace que el juego arranque con GOTIN al instante.
 - Docs: `CLAUDE.md`, skill `gba-pokemon-engine`, `CONTRACT.md` (las 3 tareas del contrato **completadas**),
   **`PROTOCOL.md`** (especificación formal del formato `GAME.md` como propuesta de protocolo *gameplay-as-data*).
 - ✅ **Flujo data-only probado end-to-end**: se añadió el entrenador `CAZABICHOS LEO` (equipo ORUGUI+PIDGY)

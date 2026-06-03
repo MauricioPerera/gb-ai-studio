@@ -76,4 +76,6 @@ function parseYamlSubset(src) {
   }
   return parseBlock(0);
 }
-module.exports = { splitFrontMatter, parseYamlSubset };
+const _api = { splitFrontMatter, parseYamlSubset };
+if (typeof module !== 'undefined' && module.exports) module.exports = _api;
+if (typeof window !== 'undefined') window.YamlMin = _api;

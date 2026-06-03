@@ -887,6 +887,21 @@ function setupCodeExporter() {
         downloadBlob(codeText, 'game.asm', 'text/plain');
     });
 
+    // Importar un GAME.md y ver el juego al instante (usa el mismo buildGame que la CLI)
+    const importBtn = document.getElementById('btn-import-gamemd');
+    const importInput = document.getElementById('gamemd-file');
+    if (importBtn && importInput) {
+        importBtn.addEventListener('click', () => importInput.click());
+        importInput.addEventListener('change', (e) => {
+            const f = e.target.files && e.target.files[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = () => { importGameMd(String(reader.result)); importInput.value = ''; };
+            reader.onerror = () => addSystemMessage('No se pudo leer el archivo.');
+            reader.readAsText(f);
+        });
+    }
+
     document.getElementById('btn-export-rom').addEventListener('click', () => {
         if (!AppState.gameData) return;
 
@@ -982,6 +997,34 @@ function applyEditorPlatform() {
         mapCanvas.width = 480; mapCanvas.height = 320; // 30x20 tiles a 16px
     } else {
         mapCanvas.width = 320; mapCanvas.height = 288; // 20x18 tiles a 16px
+    }
+}
+
+// Importa un documento GAME.md (texto), lo compila a window.GAME con el MISMO buildGame que la CLI,
+// y regenera el mundo en GBA para ver el resultado al instante (caso de uso: el juego estilo Pokémon).
+function importGameMd(text) {
+    if (!window.YamlMin || !window.GameBuild) { addSystemMessage('Importador no disponible (faltan yaml-min/game-build).'); return; }
+    try {
+        const split = window.YamlMin.splitFrontMatter(text);
+        if (!split.fm) throw new Error('el archivo no tiene front-matter YAML (--- … ---)');
+        const built = window.GameBuild.buildGame(window.YamlMin.parseYamlSubset(split.fm));
+        if (!built.SPECIES || !Object.keys(built.SPECIES).length) throw new Error('el GAME.md no define `species`');
+        window.GAME = built;
+        AppState.lastPrompt = 'un juego de pokemon';
+        if (window.GBPlatform.mode !== 'gba') {
+            switchConsole('gba');   // configura la UI y regenera con lastPrompt (pokemon)
+        } else {
+            AppState.gameData = GBGenerator.generateGameLocal('un juego de pokemon');
+            syncAssetsToSimulator();
+            GBSimulator.resetGame();
+        }
+        if (GBSimulator.reinitPlayer) GBSimulator.reinitPlayer();
+        try { updateSpritePicker(); updateTilePicker(); updatePaletteSliders(); drawMapToEditor(); updateCodeView(); } catch (e) { /* vistas opcionales */ }
+        const nm = (built.platform && built.platform.mode) || '?';
+        addSystemMessage('✅ GAME.md importado (' + nm + '): ' + Object.keys(built.SPECIES).length + ' especies · ' +
+            Object.keys(built.TRAINERS || {}).length + ' entrenadores · starter ' + ((built.PLAYER && built.PLAYER.starter) || '—') + '.');
+    } catch (e) {
+        addSystemMessage('❌ Error al importar GAME.md: ' + e.message);
     }
 }
 

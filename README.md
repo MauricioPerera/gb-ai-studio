@@ -30,6 +30,11 @@ node tools/game-export.js            # GAME.md -> game-data.generated.js (window
 `export`; **no** se toca el código. Probado de punta a punta: se puede añadir un entrenador, una especie,
 un ítem, un mapa interior, un NPC, un warp o el starter **solo desde datos**.
 
+🔁 **Importar en el navegador:** el botón **«📥 Importar GAME.md»** carga un `GAME.md` desde tu disco, lo
+compila a `window.GAME` con el **mismo** `buildGame` que la CLI (`tools/game-build.js`, isomorfo) y
+**regenera el juego al instante** — sin pasar por la línea de comandos. Ideal para ver el resultado de
+tus cambios y exponer el caso del juego estilo Pokémon.
+
 - **Especificación del formato:** [`PROTOCOL.md`](./PROTOCOL.md) (y el repo independiente del protocolo).
 - **Cómo extender por datos:** `.claude/skills/gba-pokemon-engine/SKILL.md` (sección "Datos primero").
 

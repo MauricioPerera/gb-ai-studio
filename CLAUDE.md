@@ -143,6 +143,11 @@ herramientas está en `PROTOCOL.md`** (propuesta de protocolo *gameplay-as-data*
   archivo generado, usa el fallback embebido → el juego nunca se rompe.
 - **CI** (`.github/workflows/game.yml`): ejecuta el lint y comprueba que el export esté al día (sin drift).
 - Parser YAML compartido en `tools/yaml-min.js`. **Cambiar un dato = editar `GAME.md` + `export`**, no el código.
+- **Transformación compartida `tools/game-build.js`** (`buildGame(data)` → objeto GAME): isomorfa (Node +
+  navegador). La usan tanto `game-export.js` (CLI) como el **importador del navegador**.
+- **Importar `GAME.md` en vivo:** `index.html` carga `tools/yaml-min.js` + `tools/game-build.js`; el botón
+  «Importar GAME.md» llama a `importGameMd(text)` (app.js) → parsea, `buildGame`, fija `window.GAME`,
+  regenera en GBA y `GBSimulator.reinitPlayer()` (reconstruye starter/inventario/posición desde `PLAYER`).
 
 ## Convenciones y gotchas
 
