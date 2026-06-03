@@ -28,13 +28,6 @@
                 <button id="btn-config" class="btn btn-secondary">
                     <span class="btn-icon">⚙️</span> Configurar API
                 </button>
-                <button id="btn-load-pokemon" class="btn btn-secondary" title="Cargar el GAME.md del repo (caso Pokémon) e importarlo de un clic">
-                    <span class="btn-icon">🎮</span> Cargar caso Pokémon
-                </button>
-                <button id="btn-import-gamemd" class="btn btn-secondary" title="Importar un GAME.md y ver el juego al instante">
-                    <span class="btn-icon">📥</span> Importar GAME.md
-                </button>
-                <input type="file" id="gamemd-file" accept=".md,.txt,text/markdown" style="display:none">
                 <button id="btn-export-asm" class="btn btn-secondary">
                     <span class="btn-icon">📄</span> Exportar ASM
                 </button>
@@ -47,32 +40,24 @@
         <!-- MAIN LAYOUT -->
         <main class="app-layout">
             
-            <!-- PANEL IZQUIERDO: CHAT IA -->
-            <section class="panel panel-chat">
+            <!-- PANEL IZQUIERDO: EDITOR GAME.md -->
+            <section class="panel panel-editor">
                 <div class="panel-header">
-                    <h2> asistente creativo IA</h2>
-                    <span class="status-indicator online">En línea</span>
-                </div>
-                
-                <div class="chat-messages" id="chat-messages">
-                    <div class="message system">
-                        <div class="msg-content">
-                            <strong>GB-AI System:</strong> ¡Bienvenido a GB-AI Studio! Escribe abajo lo que quieres crear. Por ejemplo: 
-                            <div class="template-suggestions">
-                                <button class="btn-suggestion" data-prompt="Crea un juego de mazmorras de exploración tipo Zelda con un cofre y una llave.">🗺️ Mazmorra RPG</button>
-                                <button class="btn-suggestion" data-prompt="Crea un matamarcianos espacial (space shooter) con un asteroide y una nave de héroe.">🚀 Space Shooter</button>
-                                <button class="btn-suggestion" data-prompt="Crea un juego de plataformas clásico con bloques y monedas coleccionables.">🍄 Plataformas</button>
-                            </div>
-                        </div>
-                    </div>
+                    <h2>📝 Editor GAME.md</h2>
+                    <span class="status-indicator online">datos → juego</span>
                 </div>
 
-                <form id="chat-form" class="chat-input-area">
-                    <input type="text" id="chat-input" placeholder="Pregúntale a la IA (ej. 'haz que el héroe sea un mago'...)" required autocomplete="off">
-                    <button type="submit" class="btn-send">
-                        <span class="send-icon">🚀</span>
-                    </button>
-                </form>
+                <div class="editor-toolbar">
+                    <button id="btn-md-case" class="btn btn-secondary btn-sm" title="Cargar el GAME.md del repo (caso Pokémon)">🎮 Caso Pokémon</button>
+                    <button id="btn-md-open" class="btn btn-secondary btn-sm" title="Abrir un GAME.md de tu disco">📂 Abrir…</button>
+                    <button id="btn-md-apply" class="btn btn-primary btn-sm" title="Compilar y ver el juego (Ctrl+Enter)">▶ Aplicar</button>
+                    <button id="btn-md-download" class="btn btn-secondary btn-sm" title="Descargar el GAME.md del editor">💾 Descargar</button>
+                    <input type="file" id="gamemd-file" accept=".md,.txt,text/markdown" style="display:none">
+                </div>
+
+                <textarea id="gamemd-editor" class="gamemd-editor" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" placeholder="Pega o edita aquí un GAME.md y pulsa «Aplicar» para ver el juego…"></textarea>
+
+                <div class="editor-log" id="editor-log"></div>
             </section>
 
             <!-- PANEL CENTRAL: CONSOLA GAME BOY -->

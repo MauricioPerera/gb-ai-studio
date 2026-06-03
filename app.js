@@ -54,7 +54,7 @@ function initUI() {
     setupTabs();
 
     // 4. Configurar eventos de Chat
-    setupChat();
+    setupEditor();
 
     // 5. Configurar Editores (Sprites y Mapas)
     setupSpriteEditor();
@@ -235,11 +235,64 @@ function setupTabs() {
     });
 }
 
-// Configurar Chat
+// Editor de GAME.md (panel izquierdo): editar datos -> ver el juego
+function setupEditor() {
+    const editor = document.getElementById('gamemd-editor');
+    const fileInput = document.getElementById('gamemd-file');
+    const apply = () => { if (editor) importGameMd(editor.value); };
+
+    const btnApply = document.getElementById('btn-md-apply');
+    if (btnApply) btnApply.addEventListener('click', apply);
+    if (editor) editor.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); apply(); }
+    });
+
+    const btnCase = document.getElementById('btn-md-case');
+    if (btnCase) btnCase.addEventListener('click', () => loadGameMdIntoEditor(true));
+
+    const btnOpen = document.getElementById('btn-md-open');
+    if (btnOpen && fileInput) {
+        btnOpen.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const f = e.target.files && e.target.files[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = () => { if (editor) editor.value = String(reader.result); addSystemMessage('Archivo cargado: ' + f.name + '. Pulsa «Aplicar».'); fileInput.value = ''; };
+            reader.onerror = () => addSystemMessage('No se pudo leer el archivo.');
+            reader.readAsText(f);
+        });
+    }
+
+    const btnDownload = document.getElementById('btn-md-download');
+    if (btnDownload) btnDownload.addEventListener('click', () => {
+        if (editor) downloadBlob(editor.value, 'GAME.md', 'text/markdown');
+    });
+
+    // Al arrancar, precargar el GAME.md del repo en el editor (sin aplicar todavía).
+    loadGameMdIntoEditor(false);
+}
+
+// Carga el GAME.md del repo en el editor; si apply=true, ademas lo aplica al juego.
+async function loadGameMdIntoEditor(apply) {
+    const editor = document.getElementById('gamemd-editor');
+    try {
+        const res = await fetch('GAME.md', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        if (editor) editor.value = text;
+        if (apply) importGameMd(text);
+        else addSystemMessage('GAME.md del repo cargado en el editor. Pulsa «▶ Aplicar» (o Ctrl+Enter).');
+    } catch (e) {
+        addSystemMessage('No se pudo cargar GAME.md del repo: ' + e.message);
+    }
+}
+
+// Configurar Chat (panel retirado; se conserva inerte por compatibilidad)
 function setupChat() {
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
-    
+    if (!chatForm || !chatInput) return; // panel de chat retirado (ahora editor GAME.md)
+
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const prompt = chatInput.value.trim();
@@ -308,12 +361,13 @@ function addAIMessage(text, gameTitle) {
 }
 
 function addSystemMessage(text) {
-    const container = document.getElementById('chat-messages');
-    const msg = document.createElement('div');
-    msg.className = 'message system';
-    msg.innerHTML = `<div class="msg-content"><strong>System:</strong> ${escapeHTML(text)}</div>`;
-    container.appendChild(msg);
-    scrollToBottom();
+    const container = document.getElementById('editor-log') || document.getElementById('chat-messages');
+    if (!container) return;
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.textContent = text;
+    container.appendChild(line);
+    container.scrollTop = container.scrollHeight;
 }
 
 function addTypingIndicator() {
@@ -887,35 +941,7 @@ function setupCodeExporter() {
         downloadBlob(codeText, 'game.asm', 'text/plain');
     });
 
-    // Importar un GAME.md y ver el juego al instante (usa el mismo buildGame que la CLI)
-    const importBtn = document.getElementById('btn-import-gamemd');
-    const importInput = document.getElementById('gamemd-file');
-    if (importBtn && importInput) {
-        importBtn.addEventListener('click', () => importInput.click());
-        importInput.addEventListener('change', (e) => {
-            const f = e.target.files && e.target.files[0];
-            if (!f) return;
-            const reader = new FileReader();
-            reader.onload = () => { importGameMd(String(reader.result)); importInput.value = ''; };
-            reader.onerror = () => addSystemMessage('No se pudo leer el archivo.');
-            reader.readAsText(f);
-        });
-    }
-
-    // Cargar el caso Pokémon: hace fetch del GAME.md del repo y lo importa de un clic
-    const loadCaseBtn = document.getElementById('btn-load-pokemon');
-    if (loadCaseBtn) {
-        loadCaseBtn.addEventListener('click', async () => {
-            addSystemMessage('Cargando el caso Pokémon (GAME.md del repo)…');
-            try {
-                const res = await fetch('GAME.md', { cache: 'no-store' });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                importGameMd(await res.text());
-            } catch (e) {
-                addSystemMessage('❌ No se pudo cargar GAME.md: ' + e.message);
-            }
-        });
-    }
+    // (El import/carga de GAME.md vive ahora en el panel Editor — ver setupEditor.)
 
     document.getElementById('btn-export-rom').addEventListener('click', () => {
         if (!AppState.gameData) return;

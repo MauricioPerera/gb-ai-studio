@@ -1230,3 +1230,58 @@ body {
     border-radius: 4px;
     border: 1px solid rgba(139, 172, 15, 0.15);
 }
+
+/* ---- Editor GAME.md (panel izquierdo) ---- */
+.editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(10, 15, 20, 0.4);
+}
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+}
+.gamemd-editor {
+    flex: 1;
+    width: 100%;
+    min-height: 200px;
+    resize: none;
+    border: none;
+    outline: none;
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #cfe9d0;
+    background: #0a0f0a;
+    tab-size: 2;
+    white-space: pre;
+    overflow: auto;
+}
+.gamemd-editor:focus {
+    box-shadow: inset 0 0 0 1px var(--border-color-active);
+}
+.editor-log {
+    height: 92px;
+    flex: none;
+    overflow-y: auto;
+    padding: 8px 12px;
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    background: rgba(0, 0, 0, 0.35);
+    border-top: 1px solid var(--border-color);
+}
+.editor-log .log-line {
+    padding: 1px 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.editor-log .log-line:last-child {
+    color: var(--text-main);
+}
