@@ -61,21 +61,22 @@
       }
     }
 
-    // solid-sync (cross-check opcional con el motor)
+    // solid-sync (cross-check opcional con el motor): cruza tiles.solid con el Set de sólidos del código,
+    // detectado por `<NOMBRE>_SOLID_TILES = new Set([...])` (genérico, sirve a cualquier motor).
     let solidSet = null;
     if (opts.engineSource) {
-      const m = String(opts.engineSource).match(/GBA_SOLID_TILES\s*=\s*new Set\([^[]*\[([^\]]+)\]/);
+      const m = String(opts.engineSource).match(/SOLID_TILES\s*=\s*new Set\([^[]*\[([^\]]+)\]/);
       if (m) solidSet = new Set(m[1].split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)));
     }
     if (solidSet) {
       for (const [id, t] of Object.entries(tiles)) {
         const n = Number(id), inSet = solidSet.has(n);
-        if (t.solid === true && !inSet) add('error', 'solid-sync', 'tile ' + id + ' (' + t.name + ') es solid en GAME.md pero NO esta en GBA_SOLID_TILES');
-        if (t.solid === false && inSet) add('error', 'solid-sync', 'tile ' + id + ' (' + t.name + ') es walkable en GAME.md pero SI esta en GBA_SOLID_TILES');
+        if (t.solid === true && !inSet) add('error', 'solid-sync', 'tile ' + id + ' (' + t.name + ') es solid en GAME.md pero NO esta en el Set de solidos del motor');
+        if (t.solid === false && inSet) add('error', 'solid-sync', 'tile ' + id + ' (' + t.name + ') es walkable en GAME.md pero SI esta en el Set de solidos del motor');
       }
-      for (const n of solidSet) if (!(n in tiles)) add('warn', 'solid-sync', 'tile ' + n + ' es solido en el codigo pero no esta declarado en GAME.md');
+      for (const n of solidSet) if (!(n in tiles)) add('warn', 'solid-sync', 'tile ' + n + ' es solido en el motor pero no esta declarado en GAME.md');
     } else if (opts.requireEngine) {
-      add('warn', 'solid-sync', 'No se pudo leer GBA_SOLID_TILES de simulator.js (cross-check omitido)');
+      add('warn', 'solid-sync', 'No se pudo leer el Set de solidos del motor (cross-check omitido)');
     }
 
     // type-symmetry
@@ -231,7 +232,7 @@
       for (const k of Object.keys(bal)) {
         const e = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const used = new RegExp("gBal\\(['\"]" + e + "['\"]|\\." + e + "\\b|\\[['\"]" + e + "['\"]\\]").test(String(opts.engineSource));
-        if (!used) add('warn', 'dead-token', 'balance.' + k + ' declarado en GAME.md pero no referenciado en simulator.js');
+        if (!used) add('warn', 'dead-token', 'balance.' + k + ' declarado en GAME.md pero no referenciado en el motor');
       }
     }
 
