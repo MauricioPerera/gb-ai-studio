@@ -194,32 +194,27 @@
                                 <div class="map-grid-container">
                                     <canvas id="map-editor-canvas" width="320" height="288"></canvas>
                                 </div>
-                                <div class="pixel-info">Tamaño del mapa: 20x18 tiles (Resolución de Pantalla GB)</div>
+                                <div class="pixel-info"><span id="map-size-label">Mapa: 20×18 tiles</span> · <span id="map-hover-info" class="muted"></span></div>
                             </div>
                             <div class="editor-sidebar">
+                                <h3>Tile seleccionado</h3>
+                                <div class="tile-selected" id="tile-selected"></div>
+
                                 <h3>Librería de Tiles</h3>
                                 <div class="tile-palette" id="tile-picker">
                                     <!-- Generado dinámicamente -->
                                 </div>
-                                
-                                <h3>Paleta Activa GBC</h3>
+
+                                <h3>Paleta activa</h3>
                                 <div style="margin-bottom: 12px;">
-                                    <select id="map-tile-palette" class="form-control" style="width: 100%; font-size: 12px;">
-                                        <option value="0">Paleta 0 (Suelo)</option>
-                                        <option value="1">Paleta 1 (Paredes)</option>
-                                        <option value="2">Paleta 2 (Cofres)</option>
-                                        <option value="3">Paleta 3 (Puertas)</option>
-                                        <option value="4">Paleta 4 (Especial)</option>
-                                        <option value="5">Paleta 5</option>
-                                        <option value="6">Paleta 6</option>
-                                        <option value="7">Paleta 7</option>
-                                    </select>
+                                    <select id="map-tile-palette" class="md-select"></select>
                                 </div>
 
                                 <h3>Herramientas</h3>
                                 <div class="tool-selector">
-                                    <button class="btn btn-sm btn-primary active" id="tool-pencil">✏️ Lápiz</button>
-                                    <button class="btn btn-sm btn-secondary" id="tool-fill">🪣 Rellenar</button>
+                                    <button class="btn btn-sm btn-primary active" id="tool-pencil" title="Pintar tiles (clic y arrastra)">✏️ Lápiz</button>
+                                    <button class="btn btn-sm btn-secondary" id="tool-fill" title="Rellenar área contigua">🪣 Rellenar</button>
+                                    <button class="btn btn-sm btn-secondary" id="tool-eyedropper" title="Cuentagotas: copia el tile bajo el cursor (clic-derecho en el mapa también)">💧 Pipeta</button>
                                 </div>
 
                                 <div class="editor-actions" style="margin-top: 15px;">

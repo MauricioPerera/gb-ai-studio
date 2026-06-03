@@ -669,28 +669,24 @@ function setupMapEditor() {
 
     mapCanvas.addEventListener('mousedown', startDrawingMap);
     mapCanvas.addEventListener('mousemove', drawMapTile);
+    mapCanvas.addEventListener('mousemove', updateMapHover);
+    mapCanvas.addEventListener('mouseleave', () => { const h = document.getElementById('map-hover-info'); if (h) h.textContent = ''; });
+    mapCanvas.addEventListener('contextmenu', (e) => { e.preventDefault(); pickMapTile(e); }); // clic-derecho = cuentagotas
     window.addEventListener('mouseup', stopDrawingMap);
 
-    // Mapear selector de paleta GBC del mapa
+    // Selector de paleta del mapa
     const mapPalSelector = document.getElementById('map-tile-palette');
     mapPalSelector.addEventListener('change', (e) => {
         AppState.selectedMapPaletteIdx = parseInt(e.target.value);
     });
 
-    const btnPencil = document.getElementById('tool-pencil');
-    const btnFill = document.getElementById('tool-fill');
-    
-    btnPencil.addEventListener('click', () => {
-        btnPencil.classList.add('active');
-        btnFill.classList.remove('active');
-        AppState.mapTool = 'pencil';
-    });
-
-    btnFill.addEventListener('click', () => {
-        btnFill.classList.add('active');
-        btnPencil.classList.remove('active');
-        AppState.mapTool = 'fill';
-    });
+    // Herramientas (lápiz / rellenar / cuentagotas)
+    const tools = { pencil: document.getElementById('tool-pencil'), fill: document.getElementById('tool-fill'), eyedropper: document.getElementById('tool-eyedropper') };
+    const setTool = (name) => {
+        AppState.mapTool = name;
+        for (const k in tools) if (tools[k]) tools[k].classList.toggle('active', k === name);
+    };
+    for (const k in tools) if (tools[k]) tools[k].addEventListener('click', () => setTool(k));
 
     document.getElementById('btn-clear-map').addEventListener('click', () => {
         const ROWS = window.GBPlatform.rows;
@@ -761,42 +757,104 @@ function getPickerPaletteForTile(tileId) {
     }
 }
 
+// Paleta "real" sugerida por tile: la que más se usa con él en los mapas reales (town/interiores/route),
+// y si no aparece, la heurística por género. Hace que las miniaturas coincidan con cómo se ven en juego.
+let _tilePalHint = {};
+function rebuildTilePalHint() {
+    _tilePalHint = {};
+    const g = AppState.gameData; if (!g) return;
+    const scan = (tm, at) => {
+        if (!tm || !at) return;
+        for (let r = 0; r < tm.length; r++) for (let c = 0; c < tm[r].length; c++) {
+            const id = tm[r][c]; if (_tilePalHint[id] === undefined && at[r] && at[r][c] !== undefined) _tilePalHint[id] = at[r][c];
+        }
+    };
+    scan(g.tilemap, g.tilemapAttrs);
+    for (const k in (g.interiors || {})) scan(g.interiors[k].tilemap, g.interiors[k].attrs);
+    for (const k in (g.maps || {})) scan(g.maps[k].tilemap, g.maps[k].attrs);
+}
+function tilePalHint(i) {
+    return (_tilePalHint[i] !== undefined) ? _tilePalHint[i] : getPickerPaletteForTile(i);
+}
+function tileMeta(i) {
+    const meta = (window.GAME && window.GAME.TILES) || {};
+    return meta[i] || meta[String(i)] || {};
+}
+
+function populateMapPaletteSelect() {
+    const sel = document.getElementById('map-tile-palette');
+    if (!sel || !AppState.gameData) return;
+    const n = AppState.gameData.bgPalettes.length || 8;
+    const cur = AppState.selectedMapPaletteIdx;
+    sel.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+        const o = document.createElement('option'); o.value = i; o.textContent = 'Paleta ' + i;
+        sel.appendChild(o);
+    }
+    sel.value = Math.min(cur, n - 1);
+}
+
 function updateTilePicker() {
     if (!AppState.gameData) return;
     const picker = document.getElementById('tile-picker');
     picker.innerHTML = '';
-    
-    for (let i = 16; i <= 25; i++) {
+    rebuildTilePalHint();
+    populateMapPaletteSelect();
+
+    const bg = AppState.gameData.bgTiles;
+    const isEmpty = m => !m || m.every(r => r.every(v => v === 0));
+    let firstShown = null;
+    for (let i = 16; i <= 63; i++) {
+        const px = bg[i - 16];
+        if (isEmpty(px)) continue; // saltar IDs sin arte
+        if (firstShown === null) firstShown = i;
+        const m = tileMeta(i);
         const item = document.createElement('div');
-        item.className = `tile-item ${AppState.selectedTileIdx === i ? 'active' : ''}`;
+        item.className = 'tile-item' + (AppState.selectedTileIdx === i ? ' active' : '');
         item.setAttribute('data-index', i);
-        
+        item.title = '#' + i + ' · ' + (m.name || 'tile') + (m.solid ? ' · sólido' : '');
+
         const canvas = document.createElement('canvas');
-        canvas.width = 8;
-        canvas.height = 8;
-        
-        const bgTilePixels = AppState.gameData.bgTiles[i - 16];
-        if (bgTilePixels) {
-            // Obtener paleta sugerida según su ID para renderizar la miniatura a color
-            const palIdx = getPickerPaletteForTile(i);
-            const palette = AppState.gameData.bgPalettes[palIdx];
-            renderTileToCanvas(bgTilePixels, canvas, palette);
-        }
-        
+        canvas.width = 8; canvas.height = 8;
+        renderTileToCanvas(px, canvas, AppState.gameData.bgPalettes[tilePalHint(i)]);
         item.appendChild(canvas);
-        item.addEventListener('click', () => {
-            document.querySelectorAll('.tile-item').forEach(el => el.classList.remove('active'));
-            item.classList.add('active');
-            AppState.selectedTileIdx = i;
-            
-            // Auto-seleccionar paleta sugerida en el dropdown para facilitar la pintura
-            const palIdx = getPickerPaletteForTile(i);
-            document.getElementById('map-tile-palette').value = palIdx;
-            AppState.selectedMapPaletteIdx = palIdx;
-        });
-        
+
+        const badge = document.createElement('span');
+        badge.className = 'tile-id'; badge.textContent = i;
+        item.appendChild(badge);
+
+        item.addEventListener('click', () => selectMapTile(i));
         picker.appendChild(item);
     }
+    // Si el tile seleccionado ya no existe en esta librería, cae en el primero visible.
+    if (firstShown !== null && isEmpty(bg[AppState.selectedTileIdx - 16])) AppState.selectedTileIdx = firstShown;
+    updateSelectedTileInfo();
+}
+
+function selectMapTile(i) {
+    AppState.selectedTileIdx = i;
+    document.querySelectorAll('#tile-picker .tile-item').forEach(el =>
+        el.classList.toggle('active', Number(el.getAttribute('data-index')) === i));
+    const palIdx = tilePalHint(i);
+    const sel = document.getElementById('map-tile-palette');
+    if (sel) sel.value = palIdx;
+    AppState.selectedMapPaletteIdx = palIdx;
+    updateSelectedTileInfo();
+}
+
+function updateSelectedTileInfo() {
+    const box = document.getElementById('tile-selected');
+    if (!box || !AppState.gameData) return;
+    const i = AppState.selectedTileIdx, m = tileMeta(i);
+    const px = AppState.gameData.bgTiles[i - 16];
+    box.innerHTML = '';
+    const cv = document.createElement('canvas'); cv.width = 8; cv.height = 8;
+    if (px) renderTileToCanvas(px, cv, AppState.gameData.bgPalettes[tilePalHint(i)]);
+    box.appendChild(cv);
+    const txt = document.createElement('div');
+    txt.className = 'tile-selected-text';
+    txt.innerHTML = '<strong>#' + i + '</strong> ' + (m.name || 'tile') + (m.solid ? ' <em>sólido</em>' : '');
+    box.appendChild(txt);
 }
 
 function drawMapToEditor() {
@@ -845,6 +903,8 @@ function drawMapToEditor() {
             mapCtx.strokeRect(c * tileW, r * tileH, tileW, tileH);
         }
     }
+    const lbl = document.getElementById('map-size-label');
+    if (lbl) lbl.textContent = 'Mapa: ' + COLS + '×' + ROWS + ' tiles' + (window.GBPlatform.mode === 'gba' ? ' (GBA)' : ' (GBC)');
 }
 
 function startDrawingMap(e) {
@@ -852,29 +912,54 @@ function startDrawingMap(e) {
     drawMapTile(e);
 }
 
+// Celda (col,row) del mapa bajo el evento de ratón, o {col:null} si está fuera.
+function mapCellAt(e) {
+    const rect = mapCanvas.getBoundingClientRect();
+    const col = Math.floor((e.clientX - rect.left) / (rect.width / window.GBPlatform.cols));
+    const row = Math.floor((e.clientY - rect.top) / (rect.height / window.GBPlatform.rows));
+    if (col < 0 || col >= window.GBPlatform.cols || row < 0 || row >= window.GBPlatform.rows) return { col: null, row: null };
+    return { col, row };
+}
+
+// Cuentagotas: copia el tile y la paleta de la celda bajo el cursor.
+function pickMapTile(e) {
+    const { col, row } = mapCellAt(e);
+    if (col === null) return;
+    const id = AppState.gameData.tilemap[row][col];
+    selectMapTile(id);
+    const pal = AppState.gameData.tilemapAttrs[row][col];
+    const sel = document.getElementById('map-tile-palette'); if (sel) sel.value = pal;
+    AppState.selectedMapPaletteIdx = pal;
+    updateSelectedTileInfo();
+}
+
+// Lectura de la celda bajo el cursor (coordenadas + tile).
+function updateMapHover(e) {
+    const info = document.getElementById('map-hover-info');
+    if (!info || !AppState.gameData) return;
+    const { col, row } = mapCellAt(e);
+    if (col === null) { info.textContent = ''; return; }
+    const id = AppState.gameData.tilemap[row][col];
+    const m = tileMeta(id);
+    info.textContent = '(' + col + ',' + row + ') #' + id + (m.name ? ' ' + m.name : '');
+}
+
 function drawMapTile(e) {
     if (!isDrawingMap) return;
-    
-    const rect = mapCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const col = Math.floor(x / (rect.width / window.GBPlatform.cols));
-    const row = Math.floor(y / (rect.height / window.GBPlatform.rows));
+    if (AppState.mapTool === 'eyedropper') { pickMapTile(e); return; }
+    const { col, row } = mapCellAt(e);
+    if (col === null) return;
 
-    if (col >= 0 && col < window.GBPlatform.cols && row >= 0 && row < window.GBPlatform.rows) {
-        if (AppState.mapTool === 'pencil') {
-            AppState.gameData.tilemap[row][col] = AppState.selectedTileIdx;
-            AppState.gameData.tilemapAttrs[row][col] = AppState.selectedMapPaletteIdx;
-        } else if (AppState.mapTool === 'fill') {
-            const targetTileId = AppState.gameData.tilemap[row][col];
-            floodFillMapGbc(col, row, targetTileId, AppState.selectedTileIdx, AppState.selectedMapPaletteIdx);
-        }
-        
-        drawMapToEditor();
-        syncAssetsToSimulator();
-        updateCodeView();
+    if (AppState.mapTool === 'pencil') {
+        AppState.gameData.tilemap[row][col] = AppState.selectedTileIdx;
+        AppState.gameData.tilemapAttrs[row][col] = AppState.selectedMapPaletteIdx;
+    } else if (AppState.mapTool === 'fill') {
+        const targetTileId = AppState.gameData.tilemap[row][col];
+        floodFillMapGbc(col, row, targetTileId, AppState.selectedTileIdx, AppState.selectedMapPaletteIdx);
     }
+    drawMapToEditor();
+    syncAssetsToSimulator();
+    updateCodeView();
 }
 
 function floodFillMapGbc(startCol, startRow, targetId, replacementId, paletteId) {
