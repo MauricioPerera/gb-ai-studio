@@ -1,0 +1,13 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Nota: game-data.generated.js SÍ se versiona (la CI verifica que esté al día).

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GB-AI Studio - Entorno de Desarrollo Game Boy con IA</title>
+    <!-- Google Fonts for Retro and Modern aesthetic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Press+Start+2P&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo-area">
+                <span class="retro-icon">🕹️</span>
+                <h1 class="app-title">GB-AI <span class="accent-text">STUDIO</span></h1>
+                <span class="badge">v1.0 Beta</span>
+            </div>
+            
+            <div class="header-actions">
+                <div class="console-switch" id="console-switch">
+                    <button id="btn-gbc" class="btn btn-console active">GBC</button>
+                    <button id="btn-gba" class="btn btn-console">GBA</button>
+                </div>
+                <button id="btn-config" class="btn btn-secondary">
+                    <span class="btn-icon">⚙️</span> Configurar API
+                </button>
+                <button id="btn-export-asm" class="btn btn-secondary">
+                    <span class="btn-icon">📄</span> Exportar ASM
+                </button>
+                <button id="btn-export-rom" class="btn btn-primary">
+                    <span class="btn-icon">💾</span> Descargar ROM (.gb)
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT -->
+        <main class="app-layout">
+            
+            <!-- PANEL IZQUIERDO: CHAT IA -->
+            <section class="panel panel-chat">
+                <div class="panel-header">
+                    <h2> asistente creativo IA</h2>
+                    <span class="status-indicator online">En línea</span>
+                </div>
+                
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message system">
+                        <div class="msg-content">
+                            <strong>GB-AI System:</strong> ¡Bienvenido a GB-AI Studio! Escribe abajo lo que quieres crear. Por ejemplo: 
+                            <div class="template-suggestions">
+                                <button class="btn-suggestion" data-prompt="Crea un juego de mazmorras de exploración tipo Zelda con un cofre y una llave.">🗺️ Mazmorra RPG</button>
+                                <button class="btn-suggestion" data-prompt="Crea un matamarcianos espacial (space shooter) con un asteroide y una nave de héroe.">🚀 Space Shooter</button>
+                                <button class="btn-suggestion" data-prompt="Crea un juego de plataformas clásico con bloques y monedas coleccionables.">🍄 Plataformas</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="chat-form" class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Pregúntale a la IA (ej. 'haz que el héroe sea un mago'...)" required autocomplete="off">
+                    <button type="submit" class="btn-send">
+                        <span class="send-icon">🚀</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- PANEL CENTRAL: CONSOLA GAME BOY -->
+            <section class="panel panel-console">
+                <div class="panel-header">
+                    <h2>Simulador Game Boy</h2>
+                    <div class="led-container">
+                        <span class="led" id="console-led"></span>
+                        <span id="console-status-text">POWER</span>
+                    </div>
+                </div>
+
+                <!-- EL HARDWARE GAME BOY (Estilizado) -->
+                <div class="gb-hardware-container">
+                    <div class="gb-device">
+                        <!-- Screen Bezel -->
+                        <div class="gb-bezel">
+                            <div class="bezel-top-lines">
+                                <div class="stripe-blue"></div>
+                                <div class="stripe-red"></div>
+                                <span class="bezel-text">DOT MATRIX WITH STEREO SOUND</span>
+                            </div>
+                            
+                            <div class="screen-wrapper">
+                                <div class="battery-led" id="battery-led"></div>
+                                <canvas id="gb-canvas" width="160" height="144"></canvas>
+                                <div class="screen-scanlines"></div>
+                                <div class="screen-glare"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="gb-brand">GAME BOY <span class="color-badge" id="console-badge">COLOR</span></div>
+
+                        <!-- Controls -->
+                        <div class="gb-controls">
+                            <!-- D-pad -->
+                            <div class="dpad">
+                                <div class="dpad-btn up" id="ctrl-up"></div>
+                                <div class="dpad-btn right" id="ctrl-right"></div>
+                                <div class="dpad-btn down" id="ctrl-down"></div>
+                                <div class="dpad-btn left" id="ctrl-left"></div>
+                                <div class="dpad-center"></div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="action-buttons">
+                                <div class="btn-action-wrapper">
+                                    <div class="btn-action b-btn" id="ctrl-b">B</div>
+                                </div>
+                                <div class="btn-action-wrapper">
+                                    <div class="btn-action a-btn" id="ctrl-a">A</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Buttons -->
+                        <div class="system-buttons">
+                            <div class="sys-btn-wrapper">
+                                <div class="btn-system select-btn" id="ctrl-select"></div>
+                                <label>SELECT</label>
+                            </div>
+                            <div class="sys-btn-wrapper">
+                                <div class="btn-system start-btn" id="ctrl-start"></div>
+                                <label>START</label>
+                            </div>
+                        </div>
+                        
+                        <!-- Speaker Grille -->
+                        <div class="speaker-grille">
+                            <div class="grille-line"></div>
+                            <div class="grille-line"></div>
+                            <div class="grille-line"></div>
+                            <div class="grille-line"></div>
+                            <div class="grille-line"></div>
+                            <div class="grille-line"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls-hint">
+                    <p>⌨️ <strong>Teclado:</strong> Flechas / WASD (Cruceta) | <strong>Z</strong> (Botón B) | <strong>X</strong> (Botón A)</p>
+                </div>
+            </section>
+
+            <!-- PANEL DERECHO: IDE & TABS -->
+            <section class="panel panel-workspace">
+                <div class="workspace-tabs">
+                    <button class="tab-btn active" data-tab="tab-sprites">👾 Sprite Editor</button>
+                    <button class="tab-btn" data-tab="tab-map">🗺️ Map Editor</button>
+                    <button class="tab-btn" data-tab="tab-palettes">🎨 Paletas GBC</button>
+                    <button class="tab-btn" data-tab="tab-sound">🔊 Chiptune FX</button>
+                    <button class="tab-btn" data-tab="tab-code">💻 ASM Code</button>
+                </div>
+
+                <div class="workspace-content">
+                    
+                    <!-- TAB SPRITES -->
+                    <div class="tab-pane active" id="tab-sprites">
+                        <div class="editor-layout">
+                            <div class="editor-main">
+                                <div class="sprite-grid-container">
+                                    <canvas id="sprite-editor-canvas" width="128" height="128"></canvas>
+                                </div>
+                                <div class="pixel-info">Tamaño: 8x8 px | Paleta: Game Boy Green</div>
+                            </div>
+                            <div class="editor-sidebar">
+                                <h3>Seleccionar Sprite</h3>
+                                <div class="sprite-selector" id="sprite-picker">
+                                    <!-- Generado dinámicamente -->
+                                </div>
+                                
+                                <h3>Paleta</h3>
+                                <div class="color-palette">
+                                    <div class="color-swatch c-lightest active" data-color="0"></div>
+                                    <div class="color-swatch c-light" data-color="1"></div>
+                                    <div class="color-swatch c-dark" data-color="2"></div>
+                                    <div class="color-swatch c-darkest" data-color="3"></div>
+                                </div>
+                                
+                                <div class="editor-actions">
+                                    <button id="btn-clear-sprite" class="btn btn-sm btn-danger">Borrar</button>
+                                    <button id="btn-fill-sprite" class="btn btn-sm btn-secondary">Rellenar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB MAP -->
+                    <div class="tab-pane" id="tab-map">
+                        <div class="editor-layout">
+                            <div class="editor-main">
+                                <div class="map-grid-container">
+                                    <canvas id="map-editor-canvas" width="320" height="288"></canvas>
+                                </div>
+                                <div class="pixel-info">Tamaño del mapa: 20x18 tiles (Resolución de Pantalla GB)</div>
+                            </div>
+                            <div class="editor-sidebar">
+                                <h3>Librería de Tiles</h3>
+                                <div class="tile-palette" id="tile-picker">
+                                    <!-- Generado dinámicamente -->
+                                </div>
+                                
+                                <h3>Paleta Activa GBC</h3>
+                                <div style="margin-bottom: 12px;">
+                                    <select id="map-tile-palette" class="form-control" style="width: 100%; font-size: 12px;">
+                                        <option value="0">Paleta 0 (Suelo)</option>
+                                        <option value="1">Paleta 1 (Paredes)</option>
+                                        <option value="2">Paleta 2 (Cofres)</option>
+                                        <option value="3">Paleta 3 (Puertas)</option>
+                                        <option value="4">Paleta 4 (Especial)</option>
+                                        <option value="5">Paleta 5</option>
+                                        <option value="6">Paleta 6</option>
+                                        <option value="7">Paleta 7</option>
+                                    </select>
+                                </div>
+
+                                <h3>Herramientas</h3>
+                                <div class="tool-selector">
+                                    <button class="btn btn-sm btn-primary active" id="tool-pencil">✏️ Lápiz</button>
+                                    <button class="btn btn-sm btn-secondary" id="tool-fill">🪣 Rellenar</button>
+                                </div>
+
+                                <div class="editor-actions" style="margin-top: 15px;">
+                                    <button id="btn-clear-map" class="btn btn-sm btn-danger">Limpiar Mapa</button>
+                                    <button id="btn-random-map" class="btn btn-sm btn-secondary">Auto-Mapa</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB PALETTES -->
+                    <div class="tab-pane" id="tab-palettes">
+                        <div class="palettes-editor-container">
+                            <h3>Editor de Paletas GBC (RGB de 15 bits)</h3>
+                            <p class="desc">Modifica los colores individuales de las 8 paletas de fondo disponibles en la Game Boy Color.</p>
+                            
+                            <div class="palette-select-container" style="margin-bottom: 20px;">
+                                <label for="palette-selector-idx" style="font-size: 13px; color: var(--text-muted);">Seleccionar Paleta de Fondo:</label>
+                                <select id="palette-selector-idx" class="form-control" style="width: auto; display: inline-block; margin-left: 10px; font-size: 12px; padding: 6px 12px;">
+                                    <option value="0">Paleta Fondo 0 (Suelo)</option>
+                                    <option value="1">Paleta Fondo 1 (Paredes)</option>
+                                    <option value="2">Paleta Fondo 2 (Cofres)</option>
+                                    <option value="3">Paleta Fondo 3 (Puertas)</option>
+                                    <option value="4">Paleta Fondo 4 (Especial)</option>
+                                    <option value="5">Paleta Fondo 5</option>
+                                    <option value="6">Paleta Fondo 6</option>
+                                    <option value="7">Paleta Fondo 7</option>
+                                </select>
+                            </div>
+
+                            <div class="colors-editor-grid">
+                                <div class="color-edit-card" data-color-idx="0">
+                                    <h4>Color 0 (Fondo)</h4>
+                                    <input type="color" id="palette-color-0" class="palette-picker-input">
+                                    <div class="rgb-values" id="palette-rgb-val-0">RGB: 31, 31, 31</div>
+                                </div>
+                                <div class="color-edit-card" data-color-idx="1">
+                                    <h4>Color 1</h4>
+                                    <input type="color" id="palette-color-1" class="palette-picker-input">
+                                    <div class="rgb-values" id="palette-rgb-val-1">RGB: 20, 20, 20</div>
+                                </div>
+                                <div class="color-edit-card" data-color-idx="2">
+                                    <h4>Color 2</h4>
+                                    <input type="color" id="palette-color-2" class="palette-picker-input">
+                                    <div class="rgb-values" id="palette-rgb-val-2">RGB: 10, 10, 10</div>
+                                </div>
+                                <div class="color-edit-card" data-color-idx="3">
+                                    <h4>Color 3 (Texto / Contorno)</h4>
+                                    <input type="color" id="palette-color-3" class="palette-picker-input">
+                                    <div class="rgb-values" id="palette-rgb-val-3">RGB: 0, 0, 0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB SOUND -->
+                    <div class="tab-pane" id="tab-sound">
+                        <div class="sound-editor">
+                            <div class="sound-grid">
+                                <div class="sound-card">
+                                    <h3>Canal 1 (Onda Cuadrada + Sweep)</h3>
+                                    <p class="desc">Ideal para efectos de salto, disparos y explosiones.</p>
+                                    <div class="sound-controls">
+                                        <button class="btn btn-primary btn-play-sound" data-channel="1">🔊 Probar FX</button>
+                                        <div class="stat-row">
+                                            <span>Frecuencia:</span>
+                                            <input type="range" class="sound-slider" data-channel="1" data-param="freq" min="100" max="2000" value="800">
+                                        </div>
+                                        <div class="stat-row">
+                                            <span>Sweep Time:</span>
+                                            <input type="range" class="sound-slider" data-channel="1" data-param="sweep" min="0" max="7" value="3">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="sound-card">
+                                    <h3>Canal 2 (Onda Cuadrada)</h3>
+                                    <p class="desc">Tonos melódicos estables e impactos cortos.</p>
+                                    <div class="sound-controls">
+                                        <button class="btn btn-primary btn-play-sound" data-channel="2">🔊 Probar FX</button>
+                                        <div class="stat-row">
+                                            <span>Frecuencia:</span>
+                                            <input type="range" class="sound-slider" data-channel="2" data-param="freq" min="100" max="2000" value="1200">
+                                        </div>
+                                        <div class="stat-row">
+                                            <span>Largo (Length):</span>
+                                            <input type="range" class="sound-slider" data-channel="2" data-param="length" min="0" max="63" value="15">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="sound-card">
+                                    <h3>Canal 4 (Ruido)</h3>
+                                    <p class="desc">Excelente para percusiones, explosiones y viento.</p>
+                                    <div class="sound-controls">
+                                        <button class="btn btn-primary btn-play-sound" data-channel="4">🔊 Probar Ruido</button>
+                                        <div class="stat-row">
+                                            <span>Shift Frequency:</span>
+                                            <input type="range" class="sound-slider" data-channel="4" data-param="freq" min="0" max="15" value="4">
+                                        </div>
+                                        <div class="stat-row">
+                                            <span>Volumen:</span>
+                                            <input type="range" class="sound-slider" data-channel="4" data-param="vol" min="0" max="15" value="10">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="registers-view" style="margin-top: 20px;">
+                                <h3>Registros de Sonido de Hardware (GB Audio)</h3>
+                                <pre><code id="sound-registers-code">
+NR10: 0x3F  ; Sweep Register
+NR11: 0x82  ; Sound length/Wave pattern duty
+NR12: 0xF3  ; Volume Envelope
+NR13: 0x00  ; Frequency Low
+NR14: 0x86  ; Frequency High / Trigger
+                                </code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB CODE -->
+                    <div class="tab-pane" id="tab-code">
+                        <div class="code-view-container">
+                            <div class="code-header">
+                                <span class="filename">game.asm</span>
+                                <div class="code-actions">
+                                    <button class="btn-copy" id="btn-copy-code">Copiar Código</button>
+                                </div>
+                            </div>
+                            <pre><code class="code-content" id="assembly-code-box">
+; Cargando...
+                            </code></pre>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+
+        <!-- CONFIGURATION MODAL -->
+        <div id="modal-api" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Configuración de API</h2>
+                    <span class="close-btn" id="modal-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p>Por defecto, GB-AI Studio utiliza un modelo generativo y de reglas <strong>completamente local y ultra rápido</strong> en el navegador.</p>
+                    <p>Si deseas habilitar descripciones personalizadas avanzadas o scripts de juegos complejos, puedes configurar una clave API de LLM aquí:</p>
+                    
+                    <div class="form-group">
+                        <label for="api-provider">Proveedor de IA:</label>
+                        <select id="api-provider" class="form-control">
+                            <option value="local">Generador Local Asistido (Recomendado - Gratis)</option>
+                            <option value="ollama">Ollama Local (minimax-m3:cloud)</option>
+                            <option value="gemini">Google Gemini API</option>
+                            <option value="openai">OpenAI API</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="ollama-url-group" style="display: none;">
+                        <label for="ollama-url">Servidor Ollama URL:</label>
+                        <input type="text" id="ollama-url" class="form-control" value="http://localhost:11434">
+                    </div>
+
+                    <div class="form-group" id="api-key-group" style="display: none;">
+                        <label for="api-key">API Key:</label>
+                        <input type="password" id="api-key" class="form-control" placeholder="Introduce tu clave API...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="modal-cancel">Cancelar</button>
+                    <button class="btn btn-primary" id="modal-save">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Datos de gameplay generados desde GAME.md (window.GAME). Debe cargar primero. -->
+    <script src="game-data.generated.js"></script>
+    <script src="rombuilder.js"></script>
+    <script src="generator.js"></script>
+    <script src="simulator.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

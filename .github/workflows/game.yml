@@ -1,0 +1,30 @@
+name: GAME.md
+
+# Valida GAME.md (linter) y comprueba que las constantes generadas estén al día,
+# imitando el flujo de design.md (lint + artefactos exportados en CI).
+on:
+  push:
+    paths: ['GAME.md', 'tools/**', 'simulator.js', '.github/workflows/game.yml']
+  pull_request:
+    paths: ['GAME.md', 'tools/**', 'simulator.js']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Lint GAME.md (cruza con GBA_SOLID_TILES)
+        run: node tools/game-lint.js GAME.md
+
+      - name: Comprobar que el export está al día (sin drift)
+        run: |
+          node tools/game-export.js
+          if ! git diff --quiet -- game-data.generated.js; then
+            echo "::error::game-data.generated.js está desactualizado. Ejecuta: node tools/game-export.js y commitea."
+            git --no-pager diff -- game-data.generated.js
+            exit 1
+          fi
