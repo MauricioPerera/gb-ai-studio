@@ -5,6 +5,8 @@
 combate por turnos con tipos, captura y equipo, evolución, entrenadores con línea de visión, Pokédex,
 tienda, menú START y guardado— cuyo **contenido y balance se gobiernan como datos**.
 
+▶️ **Demo en vivo:** https://mauricioperera.github.io/gb-ai-studio/ (pulsa el toggle **GBA** y escribe un prompt con "pokemon").
+
 > 🧩 **Es la implementación de referencia (prueba viva) del [GAME Protocol](https://github.com/MauricioPerera/game-protocol)** —
 > la propuesta *gameplay-as-data*. Casi todo el contenido del juego (criaturas, ataques, tipos, ítems,
 > encuentros, arte de tiles, siluetas, interiores, NPCs, entrenadores, warps, starter, textos) vive en
