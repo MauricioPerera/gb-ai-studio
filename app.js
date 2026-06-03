@@ -902,6 +902,21 @@ function setupCodeExporter() {
         });
     }
 
+    // Cargar el caso Pokémon: hace fetch del GAME.md del repo y lo importa de un clic
+    const loadCaseBtn = document.getElementById('btn-load-pokemon');
+    if (loadCaseBtn) {
+        loadCaseBtn.addEventListener('click', async () => {
+            addSystemMessage('Cargando el caso Pokémon (GAME.md del repo)…');
+            try {
+                const res = await fetch('GAME.md', { cache: 'no-store' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                importGameMd(await res.text());
+            } catch (e) {
+                addSystemMessage('❌ No se pudo cargar GAME.md: ' + e.message);
+            }
+        });
+    }
+
     document.getElementById('btn-export-rom').addEventListener('click', () => {
         if (!AppState.gameData) return;
 

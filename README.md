@@ -32,8 +32,10 @@ un ítem, un mapa interior, un NPC, un warp o el starter **solo desde datos**.
 
 🔁 **Importar en el navegador:** el botón **«📥 Importar GAME.md»** carga un `GAME.md` desde tu disco, lo
 compila a `window.GAME` con el **mismo** `buildGame` que la CLI (`tools/game-build.js`, isomorfo) y
-**regenera el juego al instante** — sin pasar por la línea de comandos. Ideal para ver el resultado de
-tus cambios y exponer el caso del juego estilo Pokémon.
+**regenera el juego al instante** — sin pasar por la línea de comandos. Y **«🎮 Cargar caso Pokémon»**
+hace `fetch` del `GAME.md` del repo y lo importa de un clic, para ver el caso Pokémon sin fricción.
+Descarga el `GAME.md`, edita una línea (el starter, un ataque, un precio, el arte de un tile) y
+reimpórtalo: el cambio se ve en tiempo real.
 
 - **Especificación del formato:** [`PROTOCOL.md`](./PROTOCOL.md) (y el repo independiente del protocolo).
 - **Cómo extender por datos:** `.claude/skills/gba-pokemon-engine/SKILL.md` (sección "Datos primero").
