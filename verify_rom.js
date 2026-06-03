@@ -8,7 +8,7 @@ console.log("=== INICIANDO VALIDACIÓN DETALLADA DE ROM GAME BOY COLOR ===");
 const romBuilderPath = path.join(__dirname, 'rombuilder.js');
 const romBuilderCode = fs.readFileSync(romBuilderPath, 'utf8');
 
-const sandbox = {};
+const sandbox = { window: {} }; // rombuilder.js define window.GBPlatform (config de plataforma)
 vm.createContext(sandbox);
 const ROMBuilder = vm.runInContext(romBuilderCode + "; ROMBuilder;", sandbox);
 
