@@ -29,9 +29,10 @@ Estado del proyecto. Ver `CLAUDE.md` (arquitectura) y `.claude/skills/gba-pokemo
   compartida `tools/game-build.js`, isomorfa CLI/navegador) → `window.GAME` → regenera + `reinitPlayer`.
 - ✅ **Editor `GAME.md` como panel principal** con **lint en vivo** (núcleo compartido `tools/game-lint-core.js`,
   el mismo que la CLI): resumen en la cabecera + hallazgos bajo el textarea, al escribir (debounce).
-- ✅ **Editores visuales conectados a `GAME.md`**: Map Editor → `tileArt`, Sprite Editor (siluetas 16×16) →
-  `sprites`, y **Editor de Paletas** (fondo/sprites, dinámico 4–16 colores) → `palettes`/`spritePalettes`,
-  con botones de volcado «⤴ … → GAME.md» (bucle editar → dato verificado, incl. round-trip de paletas).
+- ✅ **Editores conectados a `GAME.md`**: Map Editor → `tileArt`, Sprite Editor (siluetas 16×16) →
+  `sprites`, **Editor de Paletas** (fondo/sprites, dinámico 4–16 colores) → `palettes`/`spritePalettes`, y
+  **Chiptune FX** → `sfx` (sonidos de eventos del juego, leídos por `gsfx()` en el motor). Todos con botón
+  «⤴ … → GAME.md» (bucle editar → dato verificado, round-trip incluido). Los **4 editores** escriben al spec.
   Verificado: importar un `GAME.md` con `starter: GOTIN` hace que el juego arranque con GOTIN al instante.
 - Docs: `CLAUDE.md`, skill `gba-pokemon-engine`, `CONTRACT.md` (las 3 tareas del contrato **completadas**),
   **`PROTOCOL.md`** (especificación formal del formato `GAME.md` como propuesta de protocolo *gameplay-as-data*).

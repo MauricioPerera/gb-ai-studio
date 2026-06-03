@@ -8962,6 +8962,40 @@ window.GAME = {
     "shelf": "Estantería llena de Pociones y Poké Balls.",
     "faint_recover": "Te recuperas en el Centro Pokémon."
   },
+  "SFX": {
+    "encounter": {
+      "freq": 440,
+      "dur": 0.08
+    },
+    "trainer": {
+      "freq": 330,
+      "dur": 0.1
+    },
+    "hit": {
+      "freq": 660,
+      "dur": 0.07
+    },
+    "playerHurt": {
+      "freq": 220,
+      "dur": 0.08
+    },
+    "heal": {
+      "freq": 880,
+      "dur": 0.1
+    },
+    "catch": {
+      "freq": 880,
+      "dur": 0.1
+    },
+    "evolve": {
+      "freq": 523,
+      "dur": 0.1
+    },
+    "buy": {
+      "freq": 880,
+      "dur": 0.08
+    }
+  },
   "ECONOMY": {
     "startMoney": 3000,
     "prices": {

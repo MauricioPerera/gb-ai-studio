@@ -1180,6 +1180,43 @@ function setupSoundPanel() {
             playChiptuneSim(channel);
         });
     });
+
+    // SFX del juego (GAME.md): editor + volcado
+    const syncSfxBtn = document.getElementById('btn-sync-sfx');
+    if (syncSfxBtn) syncSfxBtn.addEventListener('click', syncSfxToGameMd);
+    renderSfxEditor();
+}
+
+// Lista de SFX del juego desde window.GAME.SFX: editar freq/dur (en vivo) + probar con ▶.
+function renderSfxEditor() {
+    const list = document.getElementById('sfx-list');
+    if (!list) return;
+    const sfx = (window.GAME && window.GAME.SFX) || {};
+    list.innerHTML = '';
+    for (const name of Object.keys(sfx)) {
+        const s = sfx[name];
+        const row = document.createElement('div'); row.className = 'sfx-row';
+        const lbl = document.createElement('span'); lbl.className = 'sfx-name'; lbl.textContent = name;
+        const freq = document.createElement('input'); freq.type = 'number'; freq.className = 'sfx-input'; freq.value = s.freq; freq.min = '1'; freq.title = 'Frecuencia (Hz)';
+        const dur = document.createElement('input'); dur.type = 'number'; dur.className = 'sfx-input'; dur.value = s.dur; dur.step = '0.01'; dur.min = '0.01'; dur.title = 'Duración (s)';
+        const play = document.createElement('button'); play.className = 'btn btn-sm btn-secondary sfx-play'; play.textContent = '▶'; play.title = 'Probar';
+        freq.addEventListener('input', () => { const v = parseFloat(freq.value); if (v > 0) s.freq = v; });
+        dur.addEventListener('input', () => { const v = parseFloat(dur.value); if (v > 0) s.dur = v; });
+        play.addEventListener('click', () => { try { GBSimulator.playBeep(s.freq, s.dur); } catch (e) {} });
+        row.appendChild(lbl); row.appendChild(freq); row.appendChild(dur); row.appendChild(play);
+        list.appendChild(row);
+    }
+}
+
+// Vuelca los SFX editados (window.GAME.SFX) a la sección `sfx` del editor GAME.md.
+function syncSfxToGameMd() {
+    const editor = document.getElementById('gamemd-editor');
+    const sfx = window.GAME && window.GAME.SFX;
+    if (!editor || !sfx || !Object.keys(sfx).length) { addSystemMessage('No hay SFX que sincronizar.'); return; }
+    const lines = Object.keys(sfx).map(n => '  ' + n + ': { freq: ' + sfx[n].freq + ', dur: ' + sfx[n].dur + ' }');
+    editor.value = upsertFrontMatterSection(editor.value, 'sfx', 'sfx:\n' + lines.join('\n') + '\n');
+    lintEditorLive();
+    addSystemMessage('⤴ SFX volcados a `sfx` (' + lines.length + '). Pulsa «▶ Aplicar» o «💾 Descargar».');
 }
 
 function playChiptuneSim(channel) {
@@ -1368,7 +1405,7 @@ function importGameMd(text) {
             GBSimulator.resetGame();
         }
         if (GBSimulator.reinitPlayer) GBSimulator.reinitPlayer();
-        try { updateSpritePicker(); drawSpriteToEditor(); updateTilePicker(); updatePaletteSliders(); drawMapToEditor(); updateCodeView(); } catch (e) { /* vistas opcionales */ }
+        try { updateSpritePicker(); drawSpriteToEditor(); updateTilePicker(); updatePaletteSliders(); drawMapToEditor(); renderSfxEditor(); updateCodeView(); } catch (e) { /* vistas opcionales */ }
         const nm = (built.platform && built.platform.mode) || '?';
         addSystemMessage('✅ GAME.md importado (' + nm + '): ' + Object.keys(built.SPECIES).length + ' especies · ' +
             Object.keys(built.TRAINERS || {}).length + ' entrenadores · starter ' + ((built.PLAYER && built.PLAYER.starter) || '—') + '.');

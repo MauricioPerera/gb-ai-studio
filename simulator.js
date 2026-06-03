@@ -129,6 +129,12 @@ const GBSimulator = (function() {
         return (t && t[key]) ? t[key] : def;
     }
 
+    // Reproduce un efecto de sonido por nombre desde GAME.md (window.GAME.SFX) con fallback freq/dur.
+    function gsfx(name, freq, dur) {
+        const s = window.GAME && window.GAME.SFX && window.GAME.SFX[name];
+        playBeep((s && s.freq != null) ? s.freq : freq, (s && s.dur != null) ? s.dur : dur);
+    }
+
     // Dimensiones del MAPA activo en tiles (puede ser mayor que la pantalla -> cámara con scroll)
     function aCols() { return gameState.mapCols || P().cols; }
     function aRows() { return gameState.mapRows || P().rows; }
@@ -398,7 +404,7 @@ const GBSimulator = (function() {
                     gameState.playerMon.hp = gameState.playerMon.maxhp; // Curación real
                     gameState.playerMon.status = null;                  // cura estados (veneno)
                     triggerDialog(gtext('nurse_heal', "Enfermera: ¡Tus POKEMON ya están totalmente curados!"));
-                    playBeep(880, 0.1);
+                    gsfx('heal', 880, 0.1);
                     setTimeout(() => playBeep(1320, 0.15), 140);
                 } else if (gameState.currentMap === 'pokemart') {
                     openShop(); // Abre el menú de compra
@@ -679,7 +685,7 @@ const GBSimulator = (function() {
         };
         gameState.pokedex.seen[mon.name] = true;
         resetKeys();
-        playBeep(330, 0.1);
+        gsfx('trainer', 330, 0.1);
     }
 
     // Tile sobre el que está parado el jugador (sus pies)
@@ -770,7 +776,7 @@ const GBSimulator = (function() {
             gameState.money -= it.price;
             gameState.inventory[it.name] = (gameState.inventory[it.name] || 0) + 1;
             gameState.shopMsg = 'Has comprado ' + it.name + '!';
-            playBeep(880, 0.08);
+            gsfx('buy', 880, 0.08);
         } else {
             gameState.shopMsg = 'No tienes suficiente dinero.';
             playBeep(180, 0.12);
@@ -1275,7 +1281,7 @@ const GBSimulator = (function() {
         gameState.battle.phase = 'msg';
         gameState.battle.next = 'menu';
         resetKeys();
-        playBeep(440, 0.08);
+        gsfx('encounter', 440, 0.08);
     }
 
     // Avanza el combate al pulsar A
@@ -1457,7 +1463,7 @@ const GBSimulator = (function() {
             gameState.pokedex.caught[b.enemy.name] = true; // registrar captura
             b.msg = '¡Capturaste a ' + b.enemy.name + '! Equipo: ' + gameState.party.length;
             b.phase = 'msg'; b.next = 'caught';
-            playBeep(880, 0.1); setTimeout(() => playBeep(1320, 0.12), 130);
+            gsfx('catch', 880, 0.1); setTimeout(() => playBeep(1320, 0.12), 130);
         } else {
             b.msg = (gameState.party.length >= 6) ? '¡Equipo lleno!' : '¡Oh no! ' + b.enemy.name + ' se soltó.';
             b.phase = 'msg'; b.next = 'enemyturn';
@@ -1475,7 +1481,7 @@ const GBSimulator = (function() {
         if (evo.type) m.type = evo.type;
         if (evo.moves) m.moves = evo.moves.map(x => ({ name: x.name, type: x.type, power: x.power }));
         m.hp = m.maxhp;
-        playBeep(523, 0.1); setTimeout(() => playBeep(784, 0.16), 130);
+        gsfx('evolve', 523, 0.1); setTimeout(() => playBeep(784, 0.16), 130);
         return '¡' + from + ' evoluciona en ' + m.name + '!';
     }
 
@@ -1519,7 +1525,7 @@ const GBSimulator = (function() {
         let dmg = Math.round((mv.power + Math.floor(gameState.playerMon.level / 3) + Math.floor(Math.random() * 4)) * eff);
         dmg = Math.max(1, dmg);
         b.enemy.hp = Math.max(0, b.enemy.hp - dmg);
-        playBeep(660, 0.07);
+        gsfx('hit', 660, 0.07);
         const extra = eff > 1 ? ' ¡Muy eficaz!' : (eff < 1 ? ' No es muy eficaz.' : '');
         if (b.enemy.hp <= 0) {
             onEnemyFaint();
@@ -1587,7 +1593,7 @@ const GBSimulator = (function() {
         let dmg = Math.round((mv.power + Math.floor(Math.random() * 4)) * eff);
         dmg = Math.max(1, dmg);
         gameState.playerMon.hp = Math.max(0, gameState.playerMon.hp - dmg);
-        playBeep(220, 0.08);
+        gsfx('playerHurt', 220, 0.08);
         const extra = eff > 1 ? ' ¡Muy eficaz!' : (eff < 1 ? ' No es muy eficaz.' : '');
         const pname = gameState.playerMon.name;
         if (gameState.playerMon.hp <= 0) {

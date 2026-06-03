@@ -204,6 +204,12 @@
       if (typeof v !== 'string' || v.trim() === '') add('error', 'text-valid', 'text.' + k + ' debe ser una cadena no vacía');
     }
 
+    // sfx-valid: cada efecto de sonido tiene freq (>0 Hz) y dur (0–5 s)
+    for (const [k, s] of Object.entries(data.sfx || {})) {
+      if (!s || typeof s.freq !== 'number' || s.freq <= 0 || s.freq > 20000) add('error', 'sfx-valid', 'sfx.' + k + ' tiene freq invalida: ' + (s && s.freq));
+      if (!s || typeof s.dur !== 'number' || s.dur <= 0 || s.dur > 5) add('error', 'sfx-valid', 'sfx.' + k + ' tiene dur invalida (0–5 s): ' + (s && s.dur));
+    }
+
     // player-ref
     const player = data.player || {};
     if (player.starter && !(player.starter in species))

@@ -162,6 +162,15 @@ text:
   pc_storage: "Es un PC de almacenamiento de POKEMON."
   shelf: "Estantería llena de Pociones y Poké Balls."
   faint_recover: "Te recuperas en el Centro Pokémon."
+sfx:
+  encounter: { freq: 440, dur: 0.08 }
+  trainer: { freq: 330, dur: 0.1 }
+  hit: { freq: 660, dur: 0.07 }
+  playerHurt: { freq: 220, dur: 0.08 }
+  heal: { freq: 880, dur: 0.1 }
+  catch: { freq: 880, dur: 0.1 }
+  evolve: { freq: 523, dur: 0.1 }
+  buy: { freq: 880, dur: 0.08 }
 tileArt:
   16: [[1,1,2,1,1,0,3,1],[1,0,1,1,2,1,1,1],[2,1,1,3,1,1,1,0],[1,1,1,1,1,1,2,1],[1,3,1,0,1,1,1,1],[0,1,1,2,1,1,1,3],[1,1,1,1,1,0,1,1],[3,1,1,1,2,1,1,1]]
   18: [[0,0,1,1,1,1,0,0],[0,1,5,6,6,5,1,0],[1,5,6,6,6,6,5,1],[1,5,6,4,4,6,5,1],[1,5,6,6,6,6,5,1],[0,1,5,6,6,5,1,0],[0,0,1,1,1,1,0,0],[0,0,3,3,3,3,0,0]]
@@ -265,4 +274,5 @@ tienda derivan de `items`. Captura: `catchBase + catchScale * (1 - PS/PSmax)`; l
 - En `maps`, `entry`/`exit`/`return` van dentro de los límites; `exit` debe caer sobre un felpudo (tile 46).
 - En `overworld`, los `trainers.name` deben existir en `trainers`; los diálogos de NPC no llevan `,`.
 - Los `warps.target` deben ser un área de `overworld` o un interior de `maps`.
+- En `sfx`, cada evento tiene `freq` (>0 Hz) y `dur` (0–5 s); el motor lo reproduce con `gsfx(nombre, ...)`.
 - `player.starter` debe existir en `species`; los ítems de `player.inventory` deben existir en `items`.

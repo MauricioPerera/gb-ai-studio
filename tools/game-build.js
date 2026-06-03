@@ -116,6 +116,7 @@
       PLAYER: data.player || {},
       TILE_ART: data.tileArt || {},
       TEXT: data.text || {},
+      SFX: data.sfx || {},
       ECONOMY,
       BALANCE: data.balance || {},
       TILES: tiles,
