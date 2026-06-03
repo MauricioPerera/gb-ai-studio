@@ -248,6 +248,7 @@ function setupEditor() {
     if (editor) editor.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); apply(); }
     });
+    if (editor) editor.addEventListener('input', scheduleLint); // lint en vivo (debounce)
 
     const btnCase = document.getElementById('btn-md-case');
     if (btnCase) btnCase.addEventListener('click', () => loadGameMdIntoEditor(true));
@@ -290,6 +291,7 @@ function syncArtToGameMd() {
     if (!lines.length) { addSystemMessage('No hay tiles con arte para volcar.'); return; }
     const block = 'tileArt:\n' + lines.join('\n') + '\n';
     editor.value = upsertFrontMatterSection(editor.value, 'tileArt', block);
+    lintEditorLive();
     addSystemMessage('⤴ Arte volcado a `tileArt` (' + lines.length + ' tiles). Pulsa «▶ Aplicar» o «💾 Descargar».');
 }
 
@@ -302,6 +304,42 @@ function upsertFrontMatterSection(text, key, block) {
     return text.replace(/\s*$/, '\n') + block;
 }
 
+// Lint en vivo del editor (mismo núcleo que la CLI: tools/game-lint-core.js). Sin cruces con el motor.
+let _lintTimer = null;
+function scheduleLint() { clearTimeout(_lintTimer); _lintTimer = setTimeout(lintEditorLive, 400); }
+function lintEditorLive() {
+    const editor = document.getElementById('gamemd-editor');
+    const statusEl = document.getElementById('editor-lint-status');
+    const listEl = document.getElementById('editor-lint');
+    if (!editor || !window.YamlMin || !window.GameLintCore) return;
+    let findings;
+    try {
+        const split = window.YamlMin.splitFrontMatter(editor.value);
+        const data = split.fm ? window.YamlMin.parseYamlSubset(split.fm) : {};
+        findings = window.GameLintCore.lintGame(data, split.body || '', { frontMatterPresent: !!split.fm });
+    } catch (e) {
+        findings = [{ level: 'error', rule: 'parse', msg: 'No se pudo parsear el GAME.md: ' + e.message }];
+    }
+    const errors = findings.filter(f => f.level === 'error').length;
+    const warns = findings.filter(f => f.level === 'warn').length;
+    if (statusEl) {
+        statusEl.textContent = errors ? ('✗ ' + errors + ' err' + (warns ? ' · ' + warns + ' avis' : ''))
+            : (warns ? ('⚠ ' + warns + ' avisos') : '✓ lint OK');
+        statusEl.className = 'status-indicator ' + (errors ? 'lint-bad' : (warns ? 'lint-warn' : 'online'));
+    }
+    if (listEl) {
+        if (!findings.length) { listEl.innerHTML = ''; listEl.style.display = 'none'; }
+        else {
+            listEl.style.display = 'block';
+            listEl.innerHTML = findings.slice(0, 40).map(f =>
+                '<div class="lint-line lint-' + f.level + '">' + (f.level === 'error' ? '✗' : '⚠') +
+                ' [' + f.rule + '] ' + escapeHTML(f.msg) + '</div>').join('') +
+                (findings.length > 40 ? '<div class="lint-line">… (' + (findings.length - 40) + ' más)</div>' : '');
+        }
+    }
+    return { errors, warns };
+}
+
 // Carga el GAME.md del repo en el editor; si apply=true, ademas lo aplica al juego.
 async function loadGameMdIntoEditor(apply) {
     const editor = document.getElementById('gamemd-editor');
@@ -310,6 +348,7 @@ async function loadGameMdIntoEditor(apply) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const text = await res.text();
         if (editor) editor.value = text;
+        lintEditorLive();
         if (apply) importGameMd(text);
         else addSystemMessage('GAME.md del repo cargado en el editor. Pulsa «▶ Aplicar» (o Ctrl+Enter).');
     } catch (e) {
@@ -492,6 +531,7 @@ function syncSpritesToGameMd() {
     const lines = Object.keys(S).map(n => '  ' + n + ': ' + JSON.stringify(S[n]));
     const block = 'sprites:\n' + lines.join('\n') + '\n';
     editor.value = upsertFrontMatterSection(editor.value, 'sprites', block);
+    lintEditorLive();
     addSystemMessage('⤴ Siluetas volcadas a `sprites` (' + lines.length + '). Pulsa «▶ Aplicar» o «💾 Descargar».');
 }
 

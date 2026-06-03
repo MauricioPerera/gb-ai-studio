@@ -145,6 +145,10 @@ herramientas está en `PROTOCOL.md`** (propuesta de protocolo *gameplay-as-data*
 - Parser YAML compartido en `tools/yaml-min.js`. **Cambiar un dato = editar `GAME.md` + `export`**, no el código.
 - **Transformación compartida `tools/game-build.js`** (`buildGame(data)` → objeto GAME): isomorfa (Node +
   navegador). La usan tanto `game-export.js` (CLI) como el **importador del navegador**.
+- **Reglas de lint compartidas `tools/game-lint-core.js`** (`lintGame(data, body, opts)` → findings): isomorfas.
+  Las usan `game-lint.js` (CLI, con cruces al motor) y el **lint en vivo** del editor (sin cruces). Mismo
+  núcleo = sin drift entre CLI y navegador. El editor revalida al escribir (debounce) y muestra el resumen
+  en la cabecera + los hallazgos bajo el textarea (`lintEditorLive` en app.js).
 - **Importar `GAME.md` en vivo:** `index.html` carga `tools/yaml-min.js` + `tools/game-build.js`; el botón
   «Importar GAME.md» llama a `importGameMd(text)` (app.js) → parsea, `buildGame`, fija `window.GAME`,
   regenera en GBA y `GBSimulator.reinitPlayer()` (reconstruye starter/inventario/posición desde `PLAYER`).

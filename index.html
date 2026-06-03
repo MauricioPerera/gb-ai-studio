@@ -41,7 +41,7 @@
             <section class="panel panel-editor">
                 <div class="panel-header">
                     <h2>📝 Editor GAME.md</h2>
-                    <span class="status-indicator online">datos → juego</span>
+                    <span class="status-indicator online" id="editor-lint-status">✓ lint</span>
                 </div>
 
                 <div class="editor-toolbar">
@@ -55,6 +55,7 @@
 
                 <textarea id="gamemd-editor" class="gamemd-editor" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" placeholder="Pega o edita aquí un GAME.md y pulsa «Aplicar» para ver el juego…"></textarea>
 
+                <div class="editor-lint" id="editor-lint" style="display:none"></div>
                 <div class="editor-log" id="editor-log"></div>
             </section>
 
@@ -404,6 +405,7 @@ NR14: 0x86  ; Frequency High / Trigger
     <script src="game-data.generated.js"></script>
     <script src="tools/yaml-min.js"></script>
     <script src="tools/game-build.js"></script>
+    <script src="tools/game-lint-core.js"></script>
     <script src="rombuilder.js"></script>
     <script src="generator.js"></script>
     <script src="simulator.js"></script>

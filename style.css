@@ -1297,3 +1297,21 @@ body {
 .editor-log .log-line:last-child {
     color: var(--text-main);
 }
+.editor-lint {
+    max-height: 120px;
+    flex: none;
+    overflow-y: auto;
+    padding: 5px 10px;
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid var(--border-color);
+}
+.editor-lint .lint-line { padding: 1px 0; white-space: pre-wrap; word-break: break-word; }
+.editor-lint .lint-error { color: #ff6b6b; }
+.editor-lint .lint-warn { color: #f5c451; }
+.status-indicator.lint-bad { color: #ff6b6b; }
+.status-indicator.lint-bad::before { background: #ff6b6b; }
+.status-indicator.lint-warn { color: #f5c451; }
+.status-indicator.lint-warn::before { background: #f5c451; }
