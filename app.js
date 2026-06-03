@@ -21,8 +21,9 @@ const AppState = {
     mapTool: 'pencil',    // pencil / fill / eyedropper
     editMap: 'town',      // mapa que se edita: 'town' | 'route1' | '<interior>'
     
-    // Configuración del editor de paletas GBC
-    selectedPaletteIdx: 0, // Paleta de fondo seleccionada para editar en la pestaña
+    // Configuración del editor de paletas
+    selectedPaletteIdx: 0,   // índice de paleta seleccionada para editar
+    paletteSource: 'bg',     // 'bg' (bgPalettes) | 'sprite' (spritePalettes)
     
     // Configuración de API
     apiProvider: 'local',
@@ -1070,65 +1071,92 @@ function stopDrawingMap() {
 // ====================================================
 // EDITOR DE PALETAS GBC
 // ====================================================
+// Conjunto de paletas en edición: fondo (bgPalettes) o sprites (spritePalettes).
+function currentPaletteSet() {
+    return AppState.paletteSource === 'sprite' ? AppState.gameData.spritePalettes : AppState.gameData.bgPalettes;
+}
+const hex2to5 = h => Math.floor(parseInt(h, 16) * 31 / 255);
+const c5to8hex = v => Math.floor(v * 255 / 31).toString(16).padStart(2, '0');
+
 function setupPaletteEditor() {
     const palSelector = document.getElementById('palette-selector-idx');
-    palSelector.addEventListener('change', (e) => {
+    if (palSelector) palSelector.addEventListener('change', (e) => {
         AppState.selectedPaletteIdx = parseInt(e.target.value);
         updatePaletteSliders();
     });
 
-    // Escuchar cambios en los inputs color picker de paleta
-    for (let c = 0; c < 4; c++) {
-        const input = document.getElementById(`palette-color-${c}`);
+    const bgBtn = document.getElementById('pal-src-bg'), spBtn = document.getElementById('pal-src-sprite');
+    const setSrc = (src) => {
+        AppState.paletteSource = src; AppState.selectedPaletteIdx = 0;
+        if (bgBtn) bgBtn.classList.toggle('active', src === 'bg');
+        if (spBtn) spBtn.classList.toggle('active', src === 'sprite');
+        updatePaletteSliders();
+    };
+    if (bgBtn) bgBtn.addEventListener('click', () => setSrc('bg'));
+    if (spBtn) spBtn.addEventListener('click', () => setSrc('sprite'));
+
+    const syncBtn = document.getElementById('btn-sync-palettes');
+    if (syncBtn) syncBtn.addEventListener('click', syncPalettesToGameMd);
+}
+
+function populatePaletteSelect() {
+    const sel = document.getElementById('palette-selector-idx');
+    if (!sel || !AppState.gameData) return;
+    const n = currentPaletteSet().length;
+    if (AppState.selectedPaletteIdx >= n) AppState.selectedPaletteIdx = 0;
+    const label = AppState.paletteSource === 'sprite' ? 'Sprite ' : 'Fondo ';
+    sel.innerHTML = '';
+    for (let i = 0; i < n; i++) { const o = document.createElement('option'); o.value = i; o.textContent = label + i; sel.appendChild(o); }
+    sel.value = AppState.selectedPaletteIdx;
+}
+
+// Genera dinámicamente una tarjeta por cada color de la paleta seleccionada (4 en GBC, hasta 16 en GBA).
+function updatePaletteSliders() {
+    if (!AppState.gameData) return;
+    populatePaletteSelect();
+    const grid = document.getElementById('palette-colors');
+    if (!grid) return;
+    const set = currentPaletteSet();
+    const palette = set[AppState.selectedPaletteIdx] || [];
+    grid.innerHTML = '';
+    for (let c = 0; c < palette.length; c++) {
+        const rgb = palette[c];
+        const card = document.createElement('div');
+        card.className = 'color-edit-card';
+        const h = document.createElement('h4'); h.textContent = 'Color ' + c + (c === 0 ? (AppState.paletteSource === 'sprite' ? ' (transp.)' : '') : '');
+        const input = document.createElement('input'); input.type = 'color'; input.className = 'palette-picker-input';
+        input.value = '#' + c5to8hex(rgb[0]) + c5to8hex(rgb[1]) + c5to8hex(rgb[2]);
+        const lbl = document.createElement('div'); lbl.className = 'rgb-values'; lbl.textContent = 'RGB: ' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2];
         input.addEventListener('input', (e) => {
-            const hex = e.target.value;
-            // Convertir hex #RRGGBB a RGB 15 bits (0-31)
-            const r8 = parseInt(hex.substring(1, 3), 16);
-            const g8 = parseInt(hex.substring(3, 5), 16);
-            const b8 = parseInt(hex.substring(5, 7), 16);
-
-            const r5 = Math.floor(r8 * 31 / 255);
-            const g5 = Math.floor(g8 * 31 / 255);
-            const b5 = Math.floor(b8 * 31 / 255);
-
-            // Actualizar paleta
-            AppState.gameData.bgPalettes[AppState.selectedPaletteIdx][c] = [r5, g5, b5];
-            
-            // Actualizar etiqueta texto
-            document.getElementById(`palette-rgb-val-${c}`).innerText = `RGB: ${r5}, ${g5}, ${b5}`;
-
-            // Refrescar vistas
+            const v = e.target.value;
+            const col = [hex2to5(v.substr(1, 2)), hex2to5(v.substr(3, 2)), hex2to5(v.substr(5, 2))];
+            set[AppState.selectedPaletteIdx][c] = col;
+            lbl.textContent = 'RGB: ' + col[0] + ', ' + col[1] + ', ' + col[2];
             syncAssetsToSimulator();
-            drawSpriteToEditor();
-            drawMapToEditor();
-            updateTilePicker();
-            updateCodeView();
+            drawSpriteToEditor(); drawMapToEditor(); updateTilePicker(); updateCodeView();
         });
+        card.appendChild(h); card.appendChild(input); card.appendChild(lbl);
+        grid.appendChild(card);
     }
 }
 
-function updatePaletteSliders() {
-    if (!AppState.gameData) return;
-    
-    const palette = AppState.gameData.bgPalettes[AppState.selectedPaletteIdx];
-    
-    for (let c = 0; c < 4; c++) {
-        const rgb = palette[c];
-        const r8 = Math.floor(rgb[0] * 255 / 31);
-        const g8 = Math.floor(rgb[1] * 255 / 31);
-        const b8 = Math.floor(rgb[2] * 255 / 31);
+// Quita los colores finales repetidos (el padding a 16 del export) para reconstruir la longitud original.
+function trimPalette(pal) {
+    const out = pal.map(c => c.slice());
+    while (out.length > 1 && JSON.stringify(out[out.length - 1]) === JSON.stringify(out[out.length - 2])) out.pop();
+    return out;
+}
 
-        // Convertir a hex
-        const hex = '#' + 
-            r8.toString(16).padStart(2, '0') + 
-            g8.toString(16).padStart(2, '0') + 
-            b8.toString(16).padStart(2, '0');
-
-        const input = document.getElementById(`palette-color-${c}`);
-        input.value = hex;
-        
-        document.getElementById(`palette-rgb-val-${c}`).innerText = `RGB: ${rgb[0]}, ${rgb[1]}, ${rgb[2]}`;
-    }
+// Vuelca bgPalettes y spritePalettes editadas a las secciones palettes/spritePalettes del editor GAME.md.
+function syncPalettesToGameMd() {
+    const editor = document.getElementById('gamemd-editor');
+    if (!editor || !AppState.gameData) { addSystemMessage('No hay paletas que sincronizar.'); return; }
+    const block = (name, set) => name + ':\n' +
+        set.map((pal, i) => pal ? '  ' + i + ': ' + JSON.stringify(trimPalette(pal)) : null).filter(Boolean).join('\n') + '\n';
+    editor.value = upsertFrontMatterSection(editor.value, 'palettes', block('palettes', AppState.gameData.bgPalettes));
+    editor.value = upsertFrontMatterSection(editor.value, 'spritePalettes', block('spritePalettes', AppState.gameData.spritePalettes));
+    lintEditorLive();
+    addSystemMessage('⤴ Paletas volcadas a `palettes` y `spritePalettes`. Pulsa «▶ Aplicar» o «💾 Descargar».');
 }
 
 // ====================================================

@@ -972,6 +972,17 @@ body {
 .tile-selected-text em { color: var(--accent-red); font-style: normal; font-size: 10px; }
 .pixel-info .muted { color: var(--text-muted); }
 
+/* Toolbar del editor de paletas */
+.palette-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.palette-source-toggle { display: flex; gap: 4px; }
+.color-edit-card h4 { font-size: 11px; }
+
 /* El editor de mapas se apila en vertical (mapa arriba, controles abajo) para caber en el panel,
    y el lienzo escala a su ancho manteniendo nitidez (el mapa GBA 30×20 es más ancho que el panel). */
 #tab-map .editor-layout { flex-direction: column; align-items: stretch; gap: 12px; overflow-y: auto; }

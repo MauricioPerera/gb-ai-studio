@@ -231,44 +231,22 @@
                     <!-- TAB PALETTES -->
                     <div class="tab-pane" id="tab-palettes">
                         <div class="palettes-editor-container">
-                            <h3>Editor de Paletas GBC (RGB de 15 bits)</h3>
-                            <p class="desc">Modifica los colores individuales de las 8 paletas de fondo disponibles en la Game Boy Color.</p>
+                            <h3>Editor de Paletas (RGB de 15 bits)</h3>
+                            <p class="desc">Edita los colores de las paletas de fondo y de sprites (4–16 colores según el modo). El botón «⤴ Paletas → GAME.md» las vuelca a las secciones <code>palettes</code>/<code>spritePalettes</code>.</p>
                             
-                            <div class="palette-select-container" style="margin-bottom: 20px;">
-                                <label for="palette-selector-idx" style="font-size: 13px; color: var(--text-muted);">Seleccionar Paleta de Fondo:</label>
-                                <select id="palette-selector-idx" class="form-control" style="width: auto; display: inline-block; margin-left: 10px; font-size: 12px; padding: 6px 12px;">
-                                    <option value="0">Paleta Fondo 0 (Suelo)</option>
-                                    <option value="1">Paleta Fondo 1 (Paredes)</option>
-                                    <option value="2">Paleta Fondo 2 (Cofres)</option>
-                                    <option value="3">Paleta Fondo 3 (Puertas)</option>
-                                    <option value="4">Paleta Fondo 4 (Especial)</option>
-                                    <option value="5">Paleta Fondo 5</option>
-                                    <option value="6">Paleta Fondo 6</option>
-                                    <option value="7">Paleta Fondo 7</option>
-                                </select>
+                            <div class="palette-toolbar">
+                                <div class="palette-source-toggle">
+                                    <button id="pal-src-bg" class="btn btn-sm btn-primary active">Fondo</button>
+                                    <button id="pal-src-sprite" class="btn btn-sm btn-secondary">Sprites</button>
+                                </div>
+                                <label style="font-size:13px;color:var(--text-muted);">Paleta:
+                                    <select id="palette-selector-idx" class="md-select" style="width:auto;display:inline-block;margin-left:6px;"></select>
+                                </label>
+                                <button id="btn-sync-palettes" class="btn btn-sm btn-secondary" title="Volcar las paletas editadas a las secciones palettes/spritePalettes del GAME.md">⤴ Paletas → GAME.md</button>
                             </div>
 
-                            <div class="colors-editor-grid">
-                                <div class="color-edit-card" data-color-idx="0">
-                                    <h4>Color 0 (Fondo)</h4>
-                                    <input type="color" id="palette-color-0" class="palette-picker-input">
-                                    <div class="rgb-values" id="palette-rgb-val-0">RGB: 31, 31, 31</div>
-                                </div>
-                                <div class="color-edit-card" data-color-idx="1">
-                                    <h4>Color 1</h4>
-                                    <input type="color" id="palette-color-1" class="palette-picker-input">
-                                    <div class="rgb-values" id="palette-rgb-val-1">RGB: 20, 20, 20</div>
-                                </div>
-                                <div class="color-edit-card" data-color-idx="2">
-                                    <h4>Color 2</h4>
-                                    <input type="color" id="palette-color-2" class="palette-picker-input">
-                                    <div class="rgb-values" id="palette-rgb-val-2">RGB: 10, 10, 10</div>
-                                </div>
-                                <div class="color-edit-card" data-color-idx="3">
-                                    <h4>Color 3 (Texto / Contorno)</h4>
-                                    <input type="color" id="palette-color-3" class="palette-picker-input">
-                                    <div class="rgb-values" id="palette-rgb-val-3">RGB: 0, 0, 0</div>
-                                </div>
+                            <div class="colors-editor-grid" id="palette-colors">
+                                <!-- Tarjetas de color generadas dinámicamente según la paleta (4–16 colores) -->
                             </div>
                         </div>
                     </div>
