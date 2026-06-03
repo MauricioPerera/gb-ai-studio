@@ -12,6 +12,8 @@ const AppState = {
     // Configuración del editor de sprites
     selectedSpriteIdx: 1, // Tile ID 1 (Héroe)
     selectedColor: 3,     // Negro por defecto (Color 3)
+    spriteSource: 'gbc',  // 'gbc' = gameData.sprites 8x8 | 'mon' = silueta de combate de GAME.md (16x16)
+    selectedMon: null,    // nombre de la silueta de GAME.md (window.GAME.SPRITES) en edición
     
     // Configuración del editor de mapas
     selectedTileIdx: 16,  // Tile ID 16 (Suelo por defecto)
@@ -435,30 +437,62 @@ function setupSpriteEditor() {
     spriteCanvas.addEventListener('mousemove', drawSpritePixel);
     window.addEventListener('mouseup', stopDrawingSprite);
     
-    // Paleta de color
-    document.querySelectorAll('#tab-sprites .color-swatch').forEach(swatch => {
-        swatch.addEventListener('click', (e) => {
-            document.querySelectorAll('#tab-sprites .color-swatch').forEach(s => s.classList.remove('active'));
-            swatch.classList.add('active');
-            AppState.selectedColor = parseInt(swatch.getAttribute('data-color'));
-        });
+    // (Las muestras de color se generan dinámicamente en updateSpriteColorSwatches.)
+
+    // Selector de silueta de combate (GAME.md). Vacío = volver a los sprites GBC 8x8.
+    const monSelect = document.getElementById('sprite-mon-select');
+    if (monSelect) monSelect.addEventListener('change', () => {
+        const name = monSelect.value;
+        if (name && window.GAME && window.GAME.SPRITES && window.GAME.SPRITES[name]) {
+            AppState.spriteSource = 'mon'; AppState.selectedMon = name;
+            document.querySelectorAll('.sprite-item').forEach(el => el.classList.remove('active'));
+        } else {
+            AppState.spriteSource = 'gbc'; AppState.selectedMon = null;
+        }
+        drawSpriteToEditor(); updateSpriteColorSwatches();
     });
 
+    const btnSyncSprites = document.getElementById('btn-sync-sprites');
+    if (btnSyncSprites) btnSyncSprites.addEventListener('click', syncSpritesToGameMd);
+
     document.getElementById('btn-clear-sprite').addEventListener('click', () => {
-        const sprite = AppState.gameData.sprites[AppState.selectedSpriteIdx];
-        for (let r = 0; r < 8; r++) sprite[r].fill(0);
-        drawSpriteToEditor();
-        syncAssetsToSimulator();
-        updateSpritePicker();
+        const sprite = currentSpriteMatrix(); if (!sprite) return;
+        sprite.forEach(row => row.fill(0));
+        afterSpriteEdit();
     });
 
     document.getElementById('btn-fill-sprite').addEventListener('click', () => {
-        const sprite = AppState.gameData.sprites[AppState.selectedSpriteIdx];
-        for (let r = 0; r < 8; r++) sprite[r].fill(AppState.selectedColor);
-        drawSpriteToEditor();
-        syncAssetsToSimulator();
-        updateSpritePicker();
+        const sprite = currentSpriteMatrix(); if (!sprite) return;
+        sprite.forEach(row => row.fill(AppState.selectedColor));
+        afterSpriteEdit();
     });
+}
+
+// Matriz en edición: sprite GBC 8x8 (gameData.sprites) o silueta de combate 16x16 (window.GAME.SPRITES).
+function currentSpriteMatrix() {
+    if (AppState.spriteSource === 'mon' && window.GAME && window.GAME.SPRITES) return window.GAME.SPRITES[AppState.selectedMon] || null;
+    return (AppState.gameData && AppState.gameData.sprites) ? AppState.gameData.sprites[AppState.selectedSpriteIdx] : null;
+}
+function currentSpritePalette() {
+    return (AppState.gameData && AppState.gameData.spritePalettes && AppState.gameData.spritePalettes[0]) || [[0, 0, 0]];
+}
+// Tras editar un píxel: redibuja, sincroniza con simulador/combate y refresca picker/código.
+function afterSpriteEdit() {
+    drawSpriteToEditor();
+    if (AppState.spriteSource === 'gbc') syncAssetsToSimulator(); // las siluetas de combate ya se leen en vivo
+    updateSpritePicker();
+    updateCodeView();
+}
+
+// Vuelca las siluetas de combate editadas (window.GAME.SPRITES) a la sección `sprites:` del editor GAME.md.
+function syncSpritesToGameMd() {
+    const editor = document.getElementById('gamemd-editor');
+    const S = window.GAME && window.GAME.SPRITES;
+    if (!editor || !S || !Object.keys(S).length) { addSystemMessage('No hay siluetas que sincronizar.'); return; }
+    const lines = Object.keys(S).map(n => '  ' + n + ': ' + JSON.stringify(S[n]));
+    const block = 'sprites:\n' + lines.join('\n') + '\n';
+    editor.value = upsertFrontMatterSection(editor.value, 'sprites', block);
+    addSystemMessage('⤴ Siluetas volcadas a `sprites` (' + lines.length + '). Pulsa «▶ Aplicar» o «💾 Descargar».');
 }
 
 function updateSpritePicker() {
@@ -484,60 +518,78 @@ function updateSpritePicker() {
             document.querySelectorAll('.sprite-item').forEach(el => el.classList.remove('active'));
             item.classList.add('active');
             AppState.selectedSpriteIdx = i;
-            drawSpriteToEditor();
+            AppState.spriteSource = 'gbc'; AppState.selectedMon = null;
+            const sel = document.getElementById('sprite-mon-select'); if (sel) sel.value = '';
+            drawSpriteToEditor(); updateSpriteColorSwatches();
         });
-        
+
         picker.appendChild(item);
     }
-    
+
+    // Poblar el desplegable de siluetas de combate desde GAME.md (window.GAME.SPRITES)
+    const monSelect = document.getElementById('sprite-mon-select');
+    if (monSelect) {
+        const names = (window.GAME && window.GAME.SPRITES) ? Object.keys(window.GAME.SPRITES) : [];
+        const cur = AppState.spriteSource === 'mon' ? AppState.selectedMon : '';
+        monSelect.innerHTML = '<option value="">— Sprites GBC (arriba) —</option>' +
+            names.map(n => '<option value="' + n + '">🐾 ' + n + ' (16×16)</option>').join('');
+        monSelect.value = cur || '';
+    }
+
     // Actualizar colores de las muestras de la paleta en el editor de sprites
     updateSpriteColorSwatches();
 }
 
 function updateSpriteColorSwatches() {
-    // Sincronizar las muestras de color del editor con la paleta de sprites 0 de GBC
-    const palette = AppState.gameData.spritePalettes[0];
-    const classes = ['.c-lightest', '.c-light', '.c-dark', '.c-darkest'];
-    
-    classes.forEach((className, idx) => {
-        const swatch = document.querySelector(`#tab-sprites ${className}`);
-        if (swatch && palette[idx]) {
-            const rgb = palette[idx];
-            const r = Math.floor(rgb[0] * 255 / 31);
-            const g = Math.floor(rgb[1] * 255 / 31);
-            const b = Math.floor(rgb[2] * 255 / 31);
-            swatch.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-        }
-    });
+    // Genera las muestras de color dinámicamente según la paleta (4 para GBC, hasta 8 para siluetas).
+    const cont = document.getElementById('sprite-color-palette');
+    if (!cont) return;
+    const palette = currentSpritePalette();
+    const count = AppState.spriteSource === 'mon' ? Math.min(8, palette.length) : 4;
+    if (AppState.selectedColor >= count) AppState.selectedColor = count - 1;
+    cont.innerHTML = '';
+    for (let idx = 0; idx < count; idx++) {
+        const rgb = palette[idx] || [0, 0, 0];
+        const sw = document.createElement('div');
+        sw.className = 'color-swatch' + (AppState.selectedColor === idx ? ' active' : '');
+        sw.setAttribute('data-color', idx);
+        sw.title = (idx === 0 ? '0 (transparente)' : 'color ' + idx);
+        sw.style.backgroundColor = `rgb(${Math.floor(rgb[0] * 255 / 31)}, ${Math.floor(rgb[1] * 255 / 31)}, ${Math.floor(rgb[2] * 255 / 31)})`;
+        if (idx === 0) sw.style.backgroundImage = 'linear-gradient(45deg,#555 25%,transparent 25%,transparent 75%,#555 75%),linear-gradient(45deg,#555 25%,transparent 25%,transparent 75%,#555 75%)', sw.style.backgroundSize = '8px 8px', sw.style.backgroundPosition = '0 0,4px 4px';
+        sw.addEventListener('click', () => {
+            AppState.selectedColor = idx;
+            cont.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            sw.classList.add('active');
+        });
+        cont.appendChild(sw);
+    }
 }
 
 function drawSpriteToEditor() {
-    if (!AppState.gameData) return;
-    
-    const sprite = AppState.gameData.sprites[AppState.selectedSpriteIdx];
-    const pixelSize = 128 / 8;
-    
+    if (!AppState.gameData || !spriteCtx) return;
+    const sprite = currentSpriteMatrix();
+    if (!sprite) return;
+    const N = sprite.length;
+    const pixelSize = 128 / N;
+    const palette = currentSpritePalette();
+
     spriteCtx.clearRect(0, 0, 128, 128);
-    
-    // Dibujar con los colores reales de la paleta de sprites 0 de GBC
-    const palette = AppState.gameData.spritePalettes[0];
-    
-    for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
+    for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
             const colorIdx = sprite[r][c];
-            const rgb = palette[colorIdx];
-            const r8 = Math.floor(rgb[0] * 255 / 31);
-            const g8 = Math.floor(rgb[1] * 255 / 31);
-            const b8 = Math.floor(rgb[2] * 255 / 31);
-            
-            spriteCtx.fillStyle = `rgb(${r8}, ${g8}, ${b8})`;
-            spriteCtx.fillRect(c * pixelSize, r * pixelSize, pixelSize, pixelSize);
-            
+            if (colorIdx !== 0) { // 0 = transparente (se ve el fondo del lienzo)
+                const rgb = palette[colorIdx] || [31, 31, 31];
+                spriteCtx.fillStyle = `rgb(${Math.floor(rgb[0] * 255 / 31)}, ${Math.floor(rgb[1] * 255 / 31)}, ${Math.floor(rgb[2] * 255 / 31)})`;
+                spriteCtx.fillRect(c * pixelSize, r * pixelSize, pixelSize, pixelSize);
+            }
             spriteCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
             spriteCtx.lineWidth = 0.5;
             spriteCtx.strokeRect(c * pixelSize, r * pixelSize, pixelSize, pixelSize);
         }
     }
+    const lbl = document.getElementById('sprite-size-label');
+    if (lbl) lbl.textContent = 'Tamaño: ' + N + '×' + N + ' px | ' +
+        (AppState.spriteSource === 'mon' ? 'silueta de combate: ' + AppState.selectedMon + ' (GAME.md)' : 'sprite GBC');
 }
 
 function startDrawingSprite(e) {
@@ -547,20 +599,16 @@ function startDrawingSprite(e) {
 
 function drawSpritePixel(e) {
     if (!isDrawingSprite) return;
-    
+    const sprite = currentSpriteMatrix();
+    if (!sprite) return;
+    const N = sprite.length;
     const rect = spriteCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const col = Math.floor(x / (rect.width / 8));
-    const row = Math.floor(y / (rect.height / 8));
-    
-    if (col >= 0 && col < 8 && row >= 0 && row < 8) {
-        AppState.gameData.sprites[AppState.selectedSpriteIdx][row][col] = AppState.selectedColor;
-        drawSpriteToEditor();
-        syncAssetsToSimulator();
-        updateSpritePicker();
-        updateCodeView();
+    const col = Math.floor((e.clientX - rect.left) / (rect.width / N));
+    const row = Math.floor((e.clientY - rect.top) / (rect.height / N));
+
+    if (col >= 0 && col < N && row >= 0 && row < N) {
+        sprite[row][col] = AppState.selectedColor;
+        afterSpriteEdit();
     }
 }
 
@@ -1089,7 +1137,7 @@ function importGameMd(text) {
             GBSimulator.resetGame();
         }
         if (GBSimulator.reinitPlayer) GBSimulator.reinitPlayer();
-        try { updateSpritePicker(); updateTilePicker(); updatePaletteSliders(); drawMapToEditor(); updateCodeView(); } catch (e) { /* vistas opcionales */ }
+        try { updateSpritePicker(); drawSpriteToEditor(); updateTilePicker(); updatePaletteSliders(); drawMapToEditor(); updateCodeView(); } catch (e) { /* vistas opcionales */ }
         const nm = (built.platform && built.platform.mode) || '?';
         addSystemMessage('✅ GAME.md importado (' + nm + '): ' + Object.keys(built.SPECIES).length + ' especies · ' +
             Object.keys(built.TRAINERS || {}).length + ' entrenadores · starter ' + ((built.PLAYER && built.PLAYER.starter) || '—') + '.');

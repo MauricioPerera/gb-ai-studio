@@ -159,22 +159,25 @@
                                 <div class="sprite-grid-container">
                                     <canvas id="sprite-editor-canvas" width="128" height="128"></canvas>
                                 </div>
-                                <div class="pixel-info">Tamaño: 8x8 px | Paleta: Game Boy Green</div>
+                                <div class="pixel-info" id="sprite-size-label">Tamaño: 8×8 px | sprite GBC</div>
                             </div>
                             <div class="editor-sidebar">
                                 <h3>Seleccionar Sprite</h3>
                                 <div class="sprite-selector" id="sprite-picker">
                                     <!-- Generado dinámicamente -->
                                 </div>
-                                
+
+                                <h3>Silueta de combate (GAME.md)</h3>
+                                <select id="sprite-mon-select" class="md-select">
+                                    <option value="">— Sprites GBC (arriba) —</option>
+                                </select>
+                                <button id="btn-sync-sprites" class="btn btn-sm btn-secondary" style="margin-top:6px;width:100%;">⤴ Siluetas → GAME.md</button>
+
                                 <h3>Paleta</h3>
-                                <div class="color-palette">
-                                    <div class="color-swatch c-lightest active" data-color="0"></div>
-                                    <div class="color-swatch c-light" data-color="1"></div>
-                                    <div class="color-swatch c-dark" data-color="2"></div>
-                                    <div class="color-swatch c-darkest" data-color="3"></div>
+                                <div class="color-palette" id="sprite-color-palette">
+                                    <!-- Generada dinámicamente según la fuente/paleta -->
                                 </div>
-                                
+
                                 <div class="editor-actions">
                                     <button id="btn-clear-sprite" class="btn btn-sm btn-danger">Borrar</button>
                                     <button id="btn-fill-sprite" class="btn btn-sm btn-secondary">Rellenar</button>

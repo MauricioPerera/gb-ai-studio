@@ -1231,6 +1231,18 @@ body {
     border: 1px solid rgba(139, 172, 15, 0.15);
 }
 
+.md-select {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 11px;
+    color: var(--text-main);
+    background: #0a0f0a;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    outline: none;
+}
+.md-select:focus { border-color: var(--border-color-active); }
+
 /* ---- Editor GAME.md (panel izquierdo) ---- */
 .editor-toolbar {
     display: flex;
